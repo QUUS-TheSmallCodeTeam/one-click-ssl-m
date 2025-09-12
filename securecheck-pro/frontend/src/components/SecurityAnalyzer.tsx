@@ -60,6 +60,9 @@ export function SecurityAnalyzer() {
 
       const data = await response.json();
       setResult(data);
+      
+      // Save analysis data to localStorage for PDF generation
+      localStorage.setItem('latestAnalysisData', JSON.stringify(data));
     } catch (err) {
       setError(err instanceof Error ? err.message : '알 수 없는 오류가 발생했습니다.');
     } finally {
