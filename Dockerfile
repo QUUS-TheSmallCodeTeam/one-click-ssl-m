@@ -36,6 +36,7 @@ RUN apt-get update && apt-get install -y \
     curl \
     git \
     wget \
+    bash \
     fonts-liberation \
     fonts-noto-cjk \
     fonts-noto-color-emoji \
@@ -70,17 +71,21 @@ COPY securecheck-pro/frontend/src ./frontend/src
 WORKDIR /app/frontend
 RUN npm ci --only=production
 
-# Debug and fix npm path
-RUN echo "=== Checking npm installation ===" && \
-    which npm && npm --version && \
-    which node && node --version && \
-    ls -la /usr/local/bin/npm* /usr/local/bin/node* && \
-    ln -sf /usr/local/bin/npm /usr/bin/npm && \
-    ln -sf /usr/local/bin/node /usr/bin/node && \
-    echo "=== After symlinks ===" && \
-    which npm && which node
-
 WORKDIR /app
+
+# Create startup scripts
+RUN echo '#!/bin/bash' > /app/start-nextjs.sh && \
+    echo 'cd /app/frontend' >> /app/start-nextjs.sh && \
+    echo 'export PORT=3000' >> /app/start-nextjs.sh && \
+    echo 'export NODE_ENV=production' >> /app/start-nextjs.sh && \
+    echo 'npm start' >> /app/start-nextjs.sh && \
+    chmod +x /app/start-nextjs.sh
+
+RUN echo '#!/bin/bash' > /app/start-fastapi.sh && \
+    echo 'cd /app/backend' >> /app/start-fastapi.sh && \
+    echo 'export PYTHONPATH=/app/backend' >> /app/start-fastapi.sh && \
+    echo 'python3 main.py' >> /app/start-fastapi.sh && \
+    chmod +x /app/start-fastapi.sh
 
 # Create nginx configuration
 RUN echo 'server { \
@@ -114,20 +119,16 @@ stdout_logfile=/tmp/nginx.log\n\
 stderr_logfile=/tmp/nginx.log\n\
 \n\
 [program:nextjs]\n\
-command=/usr/local/bin/node /usr/local/bin/npm start\n\
-directory=/app/frontend\n\
+command=/bin/bash /app/start-nextjs.sh\n\
 user=appuser\n\
-environment=PORT=3000,PATH="/usr/local/sbin:/usr/local/bin:/usr/sbin:/usr/bin:/sbin:/bin",NODE_ENV=production\n\
 autostart=true\n\
 autorestart=true\n\
 stdout_logfile=/tmp/nextjs.log\n\
 stderr_logfile=/tmp/nextjs.log\n\
 \n\
 [program:fastapi]\n\
-command=/usr/bin/python3 main.py\n\
-directory=/app/backend\n\
+command=/bin/bash /app/start-fastapi.sh\n\
 user=appuser\n\
-environment=PYTHONPATH=/app/backend,PATH="/usr/local/sbin:/usr/local/bin:/usr/sbin:/usr/bin:/sbin:/bin"\n\
 autostart=true\n\
 autorestart=true\n\
 stdout_logfile=/tmp/fastapi.log\n\
