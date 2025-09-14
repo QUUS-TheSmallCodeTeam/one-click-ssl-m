@@ -1,8 +1,7 @@
 import type { NextConfig } from "next";
 
 const nextConfig: NextConfig = {
-  // Standalone mode for Docker deployment
-  output: 'standalone',
+  // Regular Next.js build for dual server setup
   images: {
     unoptimized: true
   }
