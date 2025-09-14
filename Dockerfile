@@ -1,147 +1,86 @@
 # Read the doc: https://huggingface.co/docs/hub/spaces-sdks-docker
-# Multi-stage build for Next.js + FastAPI with dual server setup
+# Simple dual server setup for Next.js + FastAPI on Hugging Face Spaces
 
-# Stage 1: Build Next.js frontend
-FROM node:18-alpine AS frontend-builder
-
-WORKDIR /app/frontend
-
-# Copy package files
-COPY securecheck-pro/frontend/package*.json ./
-
-# Install dependencies
-RUN npm ci
-
-# Copy source code
-COPY securecheck-pro/frontend/ ./
-
-# Set environment variable for production build
-ENV NODE_ENV=production
-
-# Build the application
-RUN npm run build
-
-# Stage 2: Full stack setup with supervisor
-FROM node:18-slim
+# Use full Node.js image (includes npm, unlike slim version)
+FROM node:18
 
 # Set working directory
 WORKDIR /app
 
-# Install system dependencies including Python and supervisor
+# Install system dependencies including Python
 RUN apt-get update && apt-get install -y \
     python3 \
     python3-pip \
-    supervisor \
-    nginx \
     curl \
     git \
-    wget \
-    bash \
     fonts-liberation \
     fonts-noto-cjk \
     fonts-noto-color-emoji \
     libfontconfig1 \
     && rm -rf /var/lib/apt/lists/*
 
-# Create user and setup permissions
-RUN useradd -m -u 1001 appuser && \
-    mkdir -p /home/appuser && \
-    chown -R appuser:appuser /home/appuser
-
-# Setup Git configuration
+# Setup Git configuration for HF Spaces
 RUN git config --global --add safe.directory '*' || true
 RUN git config --global user.name "Hugging Face User" || true
 RUN git config --global user.email "user@huggingface.co" || true
 
-# Copy backend requirements and install Python dependencies
-COPY securecheck-pro/backend/requirements.txt ./backend/
-RUN pip3 install --no-cache-dir --break-system-packages -r ./backend/requirements.txt
+# Copy all application files
+COPY . .
 
-# Copy backend source code
-COPY securecheck-pro/backend/ ./backend/
+# Install Python dependencies
+RUN cd securecheck-pro/backend && pip3 install --no-cache-dir -r requirements.txt
 
-# Copy built frontend
-COPY --from=frontend-builder /app/frontend/.next ./frontend/.next
-COPY --from=frontend-builder /app/frontend/public ./frontend/public
-COPY --from=frontend-builder /app/frontend/package*.json ./frontend/
-COPY --from=frontend-builder /app/frontend/next.config.ts ./frontend/
-COPY securecheck-pro/frontend/src ./frontend/src
+# Install Node.js dependencies and build frontend
+RUN cd securecheck-pro/frontend && npm install && npm run build
 
-# Install frontend production dependencies
-WORKDIR /app/frontend
-RUN npm ci --only=production
-
-WORKDIR /app
-
-# Create startup scripts
-RUN echo '#!/bin/bash' > /app/start-nextjs.sh && \
-    echo 'cd /app/frontend' >> /app/start-nextjs.sh && \
-    echo 'export PORT=3000' >> /app/start-nextjs.sh && \
-    echo 'export NODE_ENV=production' >> /app/start-nextjs.sh && \
-    echo 'npm start' >> /app/start-nextjs.sh && \
-    chmod +x /app/start-nextjs.sh
-
-RUN echo '#!/bin/bash' > /app/start-fastapi.sh && \
-    echo 'cd /app/backend' >> /app/start-fastapi.sh && \
-    echo 'export PYTHONPATH=/app/backend' >> /app/start-fastapi.sh && \
-    echo 'python3 main.py' >> /app/start-fastapi.sh && \
-    chmod +x /app/start-fastapi.sh
-
-# Create nginx configuration
-RUN echo 'server { \
-    listen 7860; \
-    location / { \
-        proxy_pass http://localhost:3000; \
-        proxy_http_version 1.1; \
-        proxy_set_header Upgrade $http_upgrade; \
-        proxy_set_header Connection "upgrade"; \
-        proxy_set_header Host $host; \
-        proxy_cache_bypass $http_upgrade; \
-    } \
-    location /api/v1/ { \
-        proxy_pass http://localhost:8000; \
-        proxy_set_header Host $host; \
-        proxy_set_header X-Real-IP $remote_addr; \
-    } \
-}' > /etc/nginx/sites-available/default
-
-# Create supervisor configuration
-RUN printf '[supervisord]\n\
-nodaemon=true\n\
-logfile=/tmp/supervisord.log\n\
-pidfile=/tmp/supervisord.pid\n\
+# Create simple entrypoint script
+RUN echo '#!/bin/bash\n\
+set -e\n\
+echo "Starting SecureCheck Pro services..."\n\
 \n\
-[program:nginx]\n\
-command=/usr/sbin/nginx -g "daemon off;"\n\
-autostart=true\n\
-autorestart=true\n\
-stdout_logfile=/tmp/nginx.log\n\
-stderr_logfile=/tmp/nginx.log\n\
+# Start FastAPI backend in background\n\
+echo "Starting FastAPI backend on port 8000..."\n\
+cd /app/securecheck-pro/backend\n\
+export PYTHONPATH=/app/securecheck-pro/backend\n\
+python3 main.py &\n\
+FASTAPI_PID=$!\n\
 \n\
-[program:nextjs]\n\
-command=/bin/bash /app/start-nextjs.sh\n\
-user=appuser\n\
-autostart=true\n\
-autorestart=true\n\
-stdout_logfile=/tmp/nextjs.log\n\
-stderr_logfile=/tmp/nextjs.log\n\
+# Wait a moment for backend to start\n\
+sleep 3\n\
 \n\
-[program:fastapi]\n\
-command=/bin/bash /app/start-fastapi.sh\n\
-user=appuser\n\
-autostart=true\n\
-autorestart=true\n\
-stdout_logfile=/tmp/fastapi.log\n\
-stderr_logfile=/tmp/fastapi.log\n' > /etc/supervisor/conf.d/supervisord.conf
+# Start Next.js frontend in foreground\n\
+echo "Starting Next.js frontend on port 7860..."\n\
+cd /app/securecheck-pro/frontend\n\
+export PORT=7860\n\
+export NODE_ENV=production\n\
+npm start &\n\
+NEXTJS_PID=$!\n\
+\n\
+# Function to handle shutdown\n\
+cleanup() {\n\
+    echo "Shutting down services..."\n\
+    kill $FASTAPI_PID $NEXTJS_PID 2>/dev/null || true\n\
+    exit 0\n\
+}\n\
+\n\
+# Handle signals\n\
+trap cleanup SIGTERM SIGINT\n\
+\n\
+# Wait for both processes\n\
+wait $NEXTJS_PID\n' > /app/start.sh
 
-# Set proper ownership
-RUN chown -R appuser:appuser /app
+# Make entrypoint executable
+RUN chmod +x /app/start.sh
 
-# Create temp directories with proper permissions
+# Create temp directories
 RUN mkdir -p /tmp/reports /tmp/screenshots && chmod 777 /tmp/reports /tmp/screenshots
 
-# Expose port (Hugging Face Spaces standard)
+# Expose port (Hugging Face Spaces uses 7860)
 EXPOSE 7860
 
-# Run supervisor to manage all services
-CMD ["/usr/bin/supervisord", "-c", "/etc/supervisor/conf.d/supervisord.conf"]
+# Set environment variables
+ENV PORT=7860
+ENV NODE_ENV=production
+
+# Run the simple entrypoint script
+CMD ["/app/start.sh"]
