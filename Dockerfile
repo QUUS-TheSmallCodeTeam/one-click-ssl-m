@@ -1,4 +1,3 @@
-# Read the doc: https://huggingface.co/docs/hub/spaces-sdks-docker
 # Simple dual server setup for Next.js + FastAPI on Hugging Face Spaces
 
 # Use full Node.js image (includes npm, unlike slim version)
@@ -19,10 +18,6 @@ RUN apt-get update && apt-get install -y \
     libfontconfig1 \
     && rm -rf /var/lib/apt/lists/*
 
-# Setup Git configuration for HF Spaces
-RUN git config --global --add safe.directory '*' || true
-RUN git config --global user.name "Hugging Face User" || true
-RUN git config --global user.email "user@huggingface.co" || true
 
 # Copy all application files
 COPY . .
