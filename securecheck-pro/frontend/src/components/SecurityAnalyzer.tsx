@@ -35,10 +35,11 @@ export function SecurityAnalyzer() {
       return;
     }
 
-    // URL 형식 검증
-    if (!url.match(/^https?:\/\/.+/)) {
-      setError('올바른 URL 형식을 입력해주세요 (https://example.com)');
-      return;
+    // URL에 프로토콜이 없으면 https:// 자동 추가
+    let processedUrl = url.trim();
+    if (!processedUrl.match(/^https?:\/\//)) {
+      processedUrl = 'https://' + processedUrl;
+      setUrl(processedUrl); // 입력창에도 반영
     }
 
     setIsLoading(true);
@@ -51,7 +52,7 @@ export function SecurityAnalyzer() {
         headers: {
           'Content-Type': 'application/json',
         },
-        body: JSON.stringify({ url }),
+        body: JSON.stringify({ url: processedUrl }),
       });
 
       if (!response.ok) {
@@ -76,6 +77,7 @@ export function SecurityAnalyzer() {
     }
   };
 
+
   return (
     <div className="max-w-4xl mx-auto">
       <div className="bg-white rounded-lg shadow-lg p-8 mb-8">
@@ -95,7 +97,7 @@ export function SecurityAnalyzer() {
               className="flex-1 px-4 py-3 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-blue-500 text-lg"
               disabled={isLoading}
             />
-            
+
             <button
               onClick={handleAnalyze}
               disabled={isLoading}
