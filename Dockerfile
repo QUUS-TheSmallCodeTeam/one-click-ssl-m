@@ -96,27 +96,27 @@ logfile=/tmp/supervisord.log\n\
 pidfile=/tmp/supervisord.pid\n\
 \n\
 [program:nginx]\n\
-command=nginx -g "daemon off;"\n\
+command=/usr/sbin/nginx -g "daemon off;"\n\
 autostart=true\n\
 autorestart=true\n\
 stdout_logfile=/tmp/nginx.log\n\
 stderr_logfile=/tmp/nginx.log\n\
 \n\
 [program:nextjs]\n\
-command=npm start\n\
+command=/usr/local/bin/npm start\n\
 directory=/app/frontend\n\
 user=appuser\n\
-environment=PORT=3000\n\
+environment=PORT=3000,PATH="/usr/local/sbin:/usr/local/bin:/usr/sbin:/usr/bin:/sbin:/bin"\n\
 autostart=true\n\
 autorestart=true\n\
 stdout_logfile=/tmp/nextjs.log\n\
 stderr_logfile=/tmp/nextjs.log\n\
 \n\
 [program:fastapi]\n\
-command=python3 main.py\n\
+command=/usr/bin/python3 main.py\n\
 directory=/app/backend\n\
 user=appuser\n\
-environment=PYTHONPATH=/app/backend\n\
+environment=PYTHONPATH=/app/backend,PATH="/usr/local/sbin:/usr/local/bin:/usr/sbin:/usr/bin:/sbin:/bin"\n\
 autostart=true\n\
 autorestart=true\n\
 stdout_logfile=/tmp/fastapi.log\n\
