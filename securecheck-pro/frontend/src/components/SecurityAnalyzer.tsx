@@ -46,7 +46,8 @@ export function SecurityAnalyzer() {
     setResult(null);
 
     try {
-      const response = await fetch('/api/analyze', {
+      // Call FastAPI backend directly
+      const response = await fetch('/api/v1/analyze', {
         method: 'POST',
         headers: {
           'Content-Type': 'application/json',

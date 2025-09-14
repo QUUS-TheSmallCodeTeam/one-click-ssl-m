@@ -1,7 +1,9 @@
 import type { NextConfig } from "next";
 
 const nextConfig: NextConfig = {
-  // API routes를 사용하므로 static export는 제거
+  // Static export for Docker deployment
+  output: 'export',
+  trailingSlash: true,
   images: {
     unoptimized: true
   }
