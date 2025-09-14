@@ -92,7 +92,6 @@ RUN echo 'server { \
 # Create supervisor configuration
 RUN printf '[supervisord]\n\
 nodaemon=true\n\
-user=root\n\
 \n\
 [program:nginx]\n\
 command=nginx -g "daemon off;"\n\
