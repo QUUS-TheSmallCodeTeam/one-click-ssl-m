@@ -54,7 +54,7 @@ RUN git config --global user.email "user@huggingface.co" || true
 
 # Copy backend requirements and install Python dependencies
 COPY securecheck-pro/backend/requirements.txt ./backend/
-RUN pip3 install --no-cache-dir -r ./backend/requirements.txt
+RUN pip3 install --no-cache-dir --break-system-packages -r ./backend/requirements.txt
 
 # Copy backend source code
 COPY securecheck-pro/backend/ ./backend/
