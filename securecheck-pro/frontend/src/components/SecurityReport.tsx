@@ -34,6 +34,9 @@ const getScoreColor = (score: number) => {
 
 export function SecurityReport({ data }: SecurityReportProps) {
   const handleDownloadPDF = async () => {
+    // 현재 활성 요소를 저장하여 나중에 복원
+    const activeElement = document.activeElement as HTMLElement;
+
     try {
       // Get saved analysis data from localStorage
       const savedData = localStorage.getItem('latestAnalysisData');
@@ -43,56 +46,65 @@ export function SecurityReport({ data }: SecurityReportProps) {
       }
 
       const analysisData = JSON.parse(savedData);
-      
+
       // Try to use html2pdf.js, fallback to HTML download if it fails
       try {
         // Dynamically import html2pdf.js
         // @ts-expect-error - html2pdf.js has no TypeScript definitions
         const html2pdf = (await import('html2pdf.js')).default;
-        
-        // Create a temporary container for PDF generation
+
+        // Create a temporary container for PDF generation in a more isolated way
         const tempContainer = document.createElement('div');
         tempContainer.innerHTML = generatePDFContent(analysisData);
-        tempContainer.style.position = 'absolute';
-        tempContainer.style.left = '-9999px';
-        tempContainer.style.top = '-9999px';
+        tempContainer.style.cssText = `
+          position: absolute !important;
+          left: -9999px !important;
+          top: -9999px !important;
+          z-index: -9999 !important;
+          visibility: hidden !important;
+          pointer-events: none !important;
+        `;
+
+        // Append to body but with more isolation
         document.body.appendChild(tempContainer);
-        
+
         // Configure html2pdf with page breaks
         const opt = {
           margin: 0.5,
           filename: `security-report-${analysisData.url.replace(/https?:\/\//, '')}.pdf`,
           image: { type: 'jpeg', quality: 0.92 },
-          html2canvas: { 
-            scale: 1.5, 
+          html2canvas: {
+            scale: 1.5,
             useCORS: true,
             allowTaint: true,
             backgroundColor: '#ffffff'
           },
-          jsPDF: { 
-            unit: 'in', 
-            format: 'a4', 
+          jsPDF: {
+            unit: 'in',
+            format: 'a4',
             orientation: 'portrait',
             compress: true
           },
-          pagebreak: { 
+          pagebreak: {
             mode: ['css', 'legacy'],
             before: '.page-break-before',
             after: '.page-break-after',
             avoid: '.page-break-avoid'
           }
         };
-        
+
         // Generate and download PDF
         await html2pdf().set(opt).from(tempContainer).save();
-        
-        // Clean up
-        document.body.removeChild(tempContainer);
-        
+
+        // Immediate cleanup
+        if (document.body.contains(tempContainer)) {
+          document.body.removeChild(tempContainer);
+        }
+
         alert('📄 보안 분석 보고서가 PDF로 다운로드되었습니다!');
       } catch (html2pdfError) {
         console.warn('html2pdf.js failed, falling back to HTML download:', html2pdfError);
-        
+
         // Fallback: Download as HTML file that can be printed to PDF
         const pdfContent = generatePDFContent(analysisData);
         const blob = new Blob([pdfContent], { type: 'text/html' });
@@ -100,43 +112,31 @@ export function SecurityReport({ data }: SecurityReportProps) {
         const a = document.createElement('a');
         a.href = url;
         a.download = `security-report-${analysisData.url.replace(/https?:\/\//, '')}.html`;
+
+        // Create temporary link with better isolation
+        a.style.cssText = 'position: absolute; left: -9999px; visibility: hidden;';
         document.body.appendChild(a);
         a.click();
+
+        // Immediate cleanup
         window.URL.revokeObjectURL(url);
         document.body.removeChild(a);
-        
+
         alert('📄 보안 분석 보고서가 HTML 형식으로 다운로드되었습니다!\n\n브라우저에서 열어서 PDF로 인쇄하실 수 있습니다.');
       }
     } catch (error) {
       console.error('PDF 다운로드 오류:', error);
       alert(`PDF 다운로드 중 오류가 발생했습니다: ${error instanceof Error ? error.message : '알 수 없는 오류'}`);
-    }
-  };
-
-  const handleCreateGoogleDoc = async () => {
-    try {
-      const reportContent = generateReportText(data);
-      const baseUrl = 'https://docs.google.com/create';
-      const title = encodeURIComponent(`${data.url.replace(/https?:\/\//, '')} - 웹사이트 보안 분석 보고서`);
-      
-      window.open(`${baseUrl}?title=${title}`, '_blank');
-
+    } finally {
+      // 원래 활성 요소로 focus 복원 (비동기 작업 후)
       setTimeout(() => {
-        if (navigator.clipboard) {
-          navigator.clipboard.writeText(reportContent).then(() => {
-            alert('Google Docs가 열렸습니다!\n\n보고서 내용이 클립보드에 복사되었습니다.\n\nCtrl+V (또는 Cmd+V)를 눌러 내용을 붙여넣으세요.');
-          }).catch(() => {
-            alert('Google Docs가 열렸습니다!\n\n아래 내용을 복사해서 문서에 붙여넣으세요:\n\n' + reportContent);
-          });
-        } else {
-          alert('Google Docs가 열렸습니다!\n\n아래 내용을 복사해서 문서에 붙여넣으세요:\n\n' + reportContent);
+        if (activeElement && activeElement.focus) {
+          activeElement.focus();
         }
-      }, 2000);
-    } catch (error) {
-      console.error('Google Docs 생성 오류:', error);
-      alert('Google Docs 생성 중 오류가 발생했습니다.');
+      }, 100);
     }
   };
+
 
   const generatePDFContent = (data: AnalysisResult): string => {
     const domain = data.url.replace(/https?:\/\//, '').replace(/\/$/, '');
@@ -361,102 +361,6 @@ export function SecurityReport({ data }: SecurityReportProps) {
 </html>`;
   };
 
-  const generateReportText = (data: AnalysisResult): string => {
-    const domain = data.url.replace(/https?:\/\//, '').replace(/\/$/, '');
-    const analysisDate = new Date(data.created_at).toLocaleDateString('ko-KR');
-    
-    const lines = [
-      `# ${domain.toUpperCase()} 웹사이트 보안 및 서버 설정 문제 분석 보고서`,
-      '',
-      `**분석 대상**: ${domain}`,
-      `**분석 일시**: ${analysisDate}`,
-      `**분석자**: Security Analysis Team`,
-      `**보고서 버전**: 1.0`,
-      '',
-      '---',
-      '',
-      '## 📋 Executive Summary',
-      '',
-      `${domain} 웹사이트에 대한 보안 분석 결과, **중요한 보안 문제**가 발견되었습니다.`,
-      '',
-      '### 🚨 주요 발견사항',
-      `- SSL 등급: **${data.ssl_grade}**`,
-      `- 보안 점수: **${data.security_score}/100**`,
-      `- 발견된 문제: **${data.issues.length}개**`,
-      '',
-      '### 💰 비즈니스 영향',
-      `- **예상 연간 매출 손실**: ₩${data.business_impact.revenue_loss_annual.toLocaleString()}`,
-      `- **SEO 영향**: -${data.business_impact.seo_impact}% 순위 하락`,
-      `- **고객 신뢰도**: -${data.business_impact.user_trust_impact}% 신뢰 손상`,
-      '',
-      '---',
-      '',
-      '## 🔍 상세 기술 분석',
-      ''
-    ];
-
-    if (data.issues.length > 0) {
-      lines.push('### 🛡️ 보안 위험도 매트릭스', '');
-      lines.push('| 취약점 | 심각도 | 설명 |');
-      lines.push('|--------|--------|------|');
-      
-      data.issues.forEach((issue) => {
-        const severityKorean = {
-          'critical': '치명적',
-          'high': '높음',
-          'medium': '중간',
-          'low': '낮음'
-        }[issue.severity] || issue.severity;
-        
-        lines.push(`| **${issue.title}** | 🔴 **${severityKorean}** | ${issue.description} |`);
-      });
-      
-      lines.push('', '---', '');
-    }
-
-    if (data.recommendations.length > 0) {
-      lines.push('## 🔧 해결 방안 및 권장사항', '');
-      lines.push('### Phase 1: 긴급 조치 (1-3일)', '');
-      
-      data.recommendations.forEach((recommendation, index) => {
-        lines.push(`${index + 1}. **${recommendation}**`);
-      });
-      
-      lines.push('', '---', '');
-    }
-
-    lines.push(
-      '## 💰 비즈니스 영향 평가',
-      '',
-      '### 단기 영향 (1-3개월)',
-      `- **예상 매출 손실**: ₩${data.business_impact.revenue_loss_annual.toLocaleString()}/년`,
-      `- **SEO 순위 하락**: ${data.business_impact.seo_impact}%`,
-      `- **고객 신뢰도 하락**: ${data.business_impact.user_trust_impact}%`,
-      '',
-      '---',
-      '',
-      '## 📞 실행 권장사항',
-      '',
-      '### 즉시 실행 (이번 주 내)',
-      '1. **경영진 승인**: 보안 개선 프로젝트 승인',
-      '2. **담당자 지정**: 내부 담당자 또는 외부 전문가 선정',
-      '3. **예산 확보**: 보안 개선 예산 확보',
-      '4. **일정 수립**: 구체적인 실행 일정 확정',
-      '',
-      '### 최종 권고',
-      '**지금 즉시 행동하십시오.** 하루 늦을수록 고객 신뢰와 비즈니스 기회가 계속 손실됩니다.',
-      '',
-      '---',
-      '',
-      `**보고서 문의**: Security Analysis Team`,
-      `**분석 완료**: ${new Date(data.created_at).toLocaleString('ko-KR')}`,
-      '',
-      '---',
-      `*이 보고서는 ${analysisDate} 현재 상황을 기준으로 작성되었습니다.*`
-    );
-
-    return lines.join('\n');
-  };
 
   return (
     <div className="space-y-8 max-w-6xl mx-auto">
@@ -480,12 +384,6 @@ export function SecurityReport({ data }: SecurityReportProps) {
             className="px-6 py-3 bg-blue-600 text-white rounded-lg hover:bg-blue-700 focus:ring-2 focus:ring-blue-500 focus:ring-offset-2 font-medium"
           >
             📄 보고서 다운로드
-          </button>
-          <button
-            onClick={handleCreateGoogleDoc}
-            className="px-6 py-3 bg-green-600 text-white rounded-lg hover:bg-green-700 focus:ring-2 focus:ring-green-500 focus:ring-offset-2 font-medium"
-          >
-            📝 Google Docs 생성
           </button>
         </div>
       </div>
