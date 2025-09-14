@@ -92,11 +92,15 @@ RUN echo 'server { \
 # Create supervisor configuration
 RUN printf '[supervisord]\n\
 nodaemon=true\n\
+logfile=/tmp/supervisord.log\n\
+pidfile=/tmp/supervisord.pid\n\
 \n\
 [program:nginx]\n\
 command=nginx -g "daemon off;"\n\
 autostart=true\n\
 autorestart=true\n\
+stdout_logfile=/tmp/nginx.log\n\
+stderr_logfile=/tmp/nginx.log\n\
 \n\
 [program:nextjs]\n\
 command=npm start\n\
@@ -105,6 +109,8 @@ user=appuser\n\
 environment=PORT=3000\n\
 autostart=true\n\
 autorestart=true\n\
+stdout_logfile=/tmp/nextjs.log\n\
+stderr_logfile=/tmp/nextjs.log\n\
 \n\
 [program:fastapi]\n\
 command=python3 main.py\n\
@@ -112,7 +118,9 @@ directory=/app/backend\n\
 user=appuser\n\
 environment=PYTHONPATH=/app/backend\n\
 autostart=true\n\
-autorestart=true\n' > /etc/supervisor/conf.d/supervisord.conf
+autorestart=true\n\
+stdout_logfile=/tmp/fastapi.log\n\
+stderr_logfile=/tmp/fastapi.log\n' > /etc/supervisor/conf.d/supervisord.conf
 
 # Set proper ownership
 RUN chown -R appuser:appuser /app
