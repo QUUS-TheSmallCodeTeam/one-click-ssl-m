@@ -28,7 +28,7 @@ RUN git config --global user.email "user@huggingface.co" || true
 COPY . .
 
 # Install Python dependencies
-RUN cd securecheck-pro/backend && pip3 install --no-cache-dir -r requirements.txt
+RUN cd securecheck-pro/backend && pip3 install --no-cache-dir --break-system-packages -r requirements.txt
 
 # Install Node.js dependencies and build frontend
 RUN cd securecheck-pro/frontend && npm install && npm run build
