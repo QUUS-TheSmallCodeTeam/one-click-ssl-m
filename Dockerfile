@@ -90,30 +90,30 @@ RUN echo 'server { \
 }' > /etc/nginx/sites-available/default
 
 # Create supervisor configuration
-RUN echo '[supervisord] \
-nodaemon=true \
-user=root \
-\
-[program:nginx] \
-command=nginx -g "daemon off;" \
-autostart=true \
-autorestart=true \
-\
-[program:nextjs] \
-command=npm start \
-directory=/app/frontend \
-user=appuser \
-environment=PORT=3000 \
-autostart=true \
-autorestart=true \
-\
-[program:fastapi] \
-command=python3 main.py \
-directory=/app/backend \
-user=appuser \
-environment=PYTHONPATH=/app/backend \
-autostart=true \
-autorestart=true' > /etc/supervisor/conf.d/supervisord.conf
+RUN printf '[supervisord]\n\
+nodaemon=true\n\
+user=root\n\
+\n\
+[program:nginx]\n\
+command=nginx -g "daemon off;"\n\
+autostart=true\n\
+autorestart=true\n\
+\n\
+[program:nextjs]\n\
+command=npm start\n\
+directory=/app/frontend\n\
+user=appuser\n\
+environment=PORT=3000\n\
+autostart=true\n\
+autorestart=true\n\
+\n\
+[program:fastapi]\n\
+command=python3 main.py\n\
+directory=/app/backend\n\
+user=appuser\n\
+environment=PYTHONPATH=/app/backend\n\
+autostart=true\n\
+autorestart=true\n' > /etc/supervisor/conf.d/supervisord.conf
 
 # Set proper ownership
 RUN chown -R appuser:appuser /app
