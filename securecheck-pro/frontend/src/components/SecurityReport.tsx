@@ -24,20 +24,6 @@ interface SecurityReportProps {
   data: AnalysisResult;
 }
 
-const getSeverityColor = (severity: string) => {
-  switch (severity) {
-    case 'critical':
-      return 'bg-red-100 text-red-800 border-red-200';
-    case 'high':
-      return 'bg-orange-100 text-orange-800 border-orange-200';
-    case 'medium':
-      return 'bg-yellow-100 text-yellow-800 border-yellow-200';
-    case 'low':
-      return 'bg-green-100 text-green-800 border-green-200';
-    default:
-      return 'bg-gray-100 text-gray-800 border-gray-200';
-  }
-};
 
 const getScoreColor = (score: number) => {
   if (score >= 90) return 'text-green-600';
@@ -61,7 +47,7 @@ export function SecurityReport({ data }: SecurityReportProps) {
       // Try to use html2pdf.js, fallback to HTML download if it fails
       try {
         // Dynamically import html2pdf.js
-        // @ts-ignore
+        // @ts-expect-error - html2pdf.js has no TypeScript definitions
         const html2pdf = (await import('html2pdf.js')).default;
         
         // Create a temporary container for PDF generation
