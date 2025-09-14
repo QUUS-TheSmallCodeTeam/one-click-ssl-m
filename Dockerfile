@@ -70,9 +70,15 @@ COPY securecheck-pro/frontend/src ./frontend/src
 WORKDIR /app/frontend
 RUN npm ci --only=production
 
-# Verify npm installation and create symlinks if needed
-RUN which npm || ln -s /usr/local/bin/npm /usr/bin/npm
-RUN which node || ln -s /usr/local/bin/node /usr/bin/node
+# Debug and fix npm path
+RUN echo "=== Checking npm installation ===" && \
+    which npm && npm --version && \
+    which node && node --version && \
+    ls -la /usr/local/bin/npm* /usr/local/bin/node* && \
+    ln -sf /usr/local/bin/npm /usr/bin/npm && \
+    ln -sf /usr/local/bin/node /usr/bin/node && \
+    echo "=== After symlinks ===" && \
+    which npm && which node
 
 WORKDIR /app
 
@@ -108,10 +114,10 @@ stdout_logfile=/tmp/nginx.log\n\
 stderr_logfile=/tmp/nginx.log\n\
 \n\
 [program:nextjs]\n\
-command=/usr/bin/npm start\n\
+command=/usr/local/bin/node /usr/local/bin/npm start\n\
 directory=/app/frontend\n\
 user=appuser\n\
-environment=PORT=3000,PATH="/usr/local/sbin:/usr/local/bin:/usr/sbin:/usr/bin:/sbin:/bin"\n\
+environment=PORT=3000,PATH="/usr/local/sbin:/usr/local/bin:/usr/sbin:/usr/bin:/sbin:/bin",NODE_ENV=production\n\
 autostart=true\n\
 autorestart=true\n\
 stdout_logfile=/tmp/nextjs.log\n\
