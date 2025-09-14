@@ -43,7 +43,7 @@ RUN apt-get update && apt-get install -y \
     && rm -rf /var/lib/apt/lists/*
 
 # Create user and setup permissions
-RUN id -u appuser &>/dev/null || useradd -m -u 1000 appuser; \
+RUN useradd -m -u 1000 appuser || true && \
     mkdir -p /home/appuser && \
     chown -R appuser:appuser /home/appuser
 
