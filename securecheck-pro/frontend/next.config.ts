@@ -1,9 +1,8 @@
 import type { NextConfig } from "next";
 
 const nextConfig: NextConfig = {
-  // Static export for Docker deployment
-  output: 'export',
-  trailingSlash: true,
+  // Standalone mode for Docker deployment
+  output: 'standalone',
   images: {
     unoptimized: true
   }

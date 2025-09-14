@@ -61,8 +61,9 @@ RUN pip install --no-cache-dir -r requirements.txt
 # Copy backend source code
 COPY securecheck-pro/backend/ .
 
-# Copy built frontend static files
-COPY --from=frontend-builder /app/frontend/out ./static
+# Copy built frontend files (Next.js standalone build)
+COPY --from=frontend-builder /app/frontend/.next/standalone ./
+COPY --from=frontend-builder /app/frontend/.next/static ./.next/static
 COPY --from=frontend-builder /app/frontend/public ./public
 
 # Set proper ownership for the app directory
