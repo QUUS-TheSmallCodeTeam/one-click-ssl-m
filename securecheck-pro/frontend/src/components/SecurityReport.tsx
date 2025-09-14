@@ -67,106 +67,10 @@ export function SecurityReport({ data }: SecurityReportProps) {
     }
   };
 
-  const handleDownloadPDF = async () => {
-    // 현재 활성 요소를 저장하여 나중에 복원
-    const activeElement = document.activeElement as HTMLElement;
-
-    try {
-      // Get saved analysis data from localStorage
-      const savedData = localStorage.getItem('latestAnalysisData');
-      if (!savedData) {
-        alert('분석 데이터를 찾을 수 없습니다. 먼저 웹사이트를 분석해주세요.');
-        return;
-      }
-
-      const analysisData = JSON.parse(savedData);
-
-      // Try to use html2pdf.js for PDF generation
-      try {
-        // Dynamically import html2pdf.js
-        // @ts-expect-error - html2pdf.js has no TypeScript definitions
-        const html2pdf = (await import('html2pdf.js')).default;
-
-        // Create a temporary container for PDF generation
-        const tempContainer = document.createElement('div');
-        tempContainer.innerHTML = generatePDFContent(analysisData);
-        tempContainer.style.cssText = `
-          position: absolute !important;
-          left: -9999px !important;
-          top: -9999px !important;
-          z-index: -9999 !important;
-          visibility: hidden !important;
-          pointer-events: none !important;
-        `;
-
-        document.body.appendChild(tempContainer);
-
-        // Configure html2pdf
-        const opt = {
-          margin: 0.5,
-          filename: `security-report-${analysisData.url.replace(/https?:\/\//, '')}.pdf`,
-          image: { type: 'jpeg', quality: 0.92 },
-          html2canvas: {
-            scale: 1.5,
-            useCORS: true,
-            allowTaint: true,
-            backgroundColor: '#ffffff'
-          },
-          jsPDF: {
-            unit: 'in',
-            format: 'a4',
-            orientation: 'portrait',
-            compress: true
-          }
-        };
-
-        // Generate and download PDF
-        await html2pdf().set(opt).from(tempContainer).save();
-
-        // Cleanup
-        if (document.body.contains(tempContainer)) {
-          document.body.removeChild(tempContainer);
-        }
-
-        alert('📄 보안 분석 보고서가 PDF로 다운로드되었습니다!');
-      } catch (html2pdfError) {
-        console.warn('html2pdf.js failed, falling back to HTML download:', html2pdfError);
-
-        // Fallback: Download as HTML file that can be printed to PDF
-        const pdfContent = generatePDFContent(analysisData);
-        const blob = new Blob([pdfContent], { type: 'text/html' });
-        const url = window.URL.createObjectURL(blob);
-        const a = document.createElement('a');
-        a.href = url;
-        a.download = `security-report-${analysisData.url.replace(/https?:\/\//, '')}.html`;
-
-        // Create temporary link with better isolation
-        a.style.cssText = 'position: absolute; left: -9999px; visibility: hidden;';
-        document.body.appendChild(a);
-        a.click();
-
-        // Immediate cleanup
-        window.URL.revokeObjectURL(url);
-        document.body.removeChild(a);
-
-        alert('📄 보안 분석 보고서가 HTML 형식으로 다운로드되었습니다!\n\n브라우저에서 열어서 PDF로 인쇄하실 수 있습니다.');
-      }
-    } catch (error) {
-      console.error('PDF 다운로드 오류:', error);
-      alert(`PDF 다운로드 중 오류가 발생했습니다: ${error instanceof Error ? error.message : '알 수 없는 오류'}`);
-    } finally {
-      // 원래 활성 요소로 focus 복원
-      setTimeout(() => {
-        if (activeElement && activeElement.focus) {
-          activeElement.focus();
-        }
-      }, 100);
-    }
-  };
 
   const generatePDFContent = (data: AnalysisResult): string => {
     const domain = data.url.replace(/https?:\/\//, '').replace(/\/$/, '');
-    const analysisDate = new Date(data.created_at).toLocaleDateString('ko-KR');
+    const analysisDate = new Date().toLocaleDateString('ko-KR');
 
     return `<!DOCTYPE html>
 <html lang="ko">
@@ -377,7 +281,7 @@ export function SecurityReport({ data }: SecurityReportProps) {
 
     <div class="footer">
         <p><strong>보고서 문의:</strong> SecureCheck Pro Security Analysis Team</p>
-        <p><strong>분석 완료:</strong> ${new Date(data.created_at).toLocaleString('ko-KR')}</p>
+        <p><strong>분석 완료:</strong> ${new Date().toLocaleString('ko-KR')}</p>
         <p><em>이 보고서는 ${analysisDate} 현재 상황을 기준으로 작성되었습니다.</em></p>
         <p style="margin-top: 20px; font-size: 12px; color: #999;">
             이 HTML 파일을 브라우저에서 열고 Ctrl+P (또는 Cmd+P)를 눌러 PDF로 인쇄하실 수 있습니다.
@@ -397,24 +301,18 @@ export function SecurityReport({ data }: SecurityReportProps) {
           </h1>
           <div className="text-lg text-gray-600 space-y-1">
             <p><strong>분석 대상:</strong> {data.url}</p>
-            <p><strong>분석 일시:</strong> {new Date(data.created_at).toLocaleString('ko-KR')}</p>
+            <p><strong>분석 일시:</strong> {new Date().toLocaleString('ko-KR')}</p>
             <p><strong>분석자:</strong> Security Analysis Team</p>
             <p><strong>보고서 버전:</strong> 1.0</p>
           </div>
         </div>
 
-        <div className="flex justify-center space-x-4 mb-8">
+        <div className="flex justify-center mb-8">
           <button
             onClick={handleDownloadHTML}
-            className="px-6 py-3 bg-green-600 text-white rounded-lg hover:bg-green-700 focus:ring-2 focus:ring-green-500 focus:ring-offset-2 font-medium"
+            className="px-8 py-4 bg-blue-600 text-white rounded-lg hover:bg-blue-700 focus:ring-2 focus:ring-blue-500 focus:ring-offset-2 font-medium text-lg"
           >
-            📄 HTML 다운로드
-          </button>
-          <button
-            onClick={handleDownloadPDF}
-            className="px-6 py-3 bg-blue-600 text-white rounded-lg hover:bg-blue-700 focus:ring-2 focus:ring-blue-500 focus:ring-offset-2 font-medium"
-          >
-            📑 PDF 다운로드
+            📄 보고서 다운로드
           </button>
         </div>
       </div>
@@ -687,9 +585,9 @@ export function SecurityReport({ data }: SecurityReportProps) {
       <div className="report-section text-center bg-gray-50">
         <div className="space-y-2 text-sm text-gray-600">
           <p><strong>보고서 문의:</strong> Security Analysis Team</p>
-          <p><strong>분석 완료:</strong> {new Date(data.created_at).toLocaleString('ko-KR')}</p>
+          <p><strong>분석 완료:</strong> {new Date().toLocaleString('ko-KR')}</p>
           <p className="italic">
-            *이 보고서는 {new Date(data.created_at).toLocaleDateString('ko-KR')} 현재 상황을 기준으로 작성되었습니다.*
+            *이 보고서는 {new Date().toLocaleDateString('ko-KR')} 현재 상황을 기준으로 작성되었습니다.*
           </p>
         </div>
       </div>
