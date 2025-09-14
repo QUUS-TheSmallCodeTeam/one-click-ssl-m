@@ -69,6 +69,11 @@ COPY securecheck-pro/frontend/src ./frontend/src
 # Install frontend production dependencies
 WORKDIR /app/frontend
 RUN npm ci --only=production
+
+# Verify npm installation and create symlinks if needed
+RUN which npm || ln -s /usr/local/bin/npm /usr/bin/npm
+RUN which node || ln -s /usr/local/bin/node /usr/bin/node
+
 WORKDIR /app
 
 # Create nginx configuration
@@ -103,7 +108,7 @@ stdout_logfile=/tmp/nginx.log\n\
 stderr_logfile=/tmp/nginx.log\n\
 \n\
 [program:nextjs]\n\
-command=/usr/local/bin/npm start\n\
+command=/usr/bin/npm start\n\
 directory=/app/frontend\n\
 user=appuser\n\
 environment=PORT=3000,PATH="/usr/local/sbin:/usr/local/bin:/usr/sbin:/usr/bin:/sbin:/bin"\n\
