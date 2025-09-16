@@ -375,57 +375,46 @@ def extract_issues(ssl_result: dict) -> List[dict]:
     return issues
 
 def calculate_business_impact(security_score: int, ssl_result: dict, issues: List[dict]) -> dict:
-    """보안 점수와 SSL 분석 결과를 바탕으로 비즈니스 영향을 계산합니다 (TSC 보고서 기준)."""
-    
-    ssl_status = ssl_result.get('ssl_status', 'connection_error')
-    
-    # TSC 보고서를 참고한 비즈니스 영향 계산
-    if ssl_status == 'no_ssl' or not ssl_result.get('port_443_open', False):
-        # SSL 서비스 완전 부재 - TSC 보고서 수치 사용
-        return {
-            "revenue_loss_annual": 1_008_000_000,  # TSC: 10.08억원
-            "seo_impact": 35,  # 30-40% 하락 (보고서 기준)
-            "user_trust_impact": 80  # 70-90% 이탈률 (보고서 기준)
-        }
-    
-    elif ssl_status == 'expired':
-        # 만료된 SSL 인증서
-        return {
-            "revenue_loss_annual": 600_000_000,  # 6억원
-            "seo_impact": 25,
-            "user_trust_impact": 70
-        }
-    
-    elif ssl_status == 'self_signed':
-        # 자체 서명 인증서
-        return {
-            "revenue_loss_annual": 400_000_000,  # 4억원
-            "seo_impact": 20,
-            "user_trust_impact": 60
-        }
-    
-    elif ssl_status == 'valid':
-        # 정상 SSL - 보안 점수에 따른 세분화된 영향
-        base_revenue = 1_000_000_000
-        loss_rate = max(0, (100 - security_score) / 100 * 0.15)  # 최대 15% 손실
-        revenue_loss = int(base_revenue * loss_rate)
-        
-        seo_impact = max(0, (100 - security_score) // 15)  # 최대 6% 하락
-        user_trust_impact = max(0, (100 - security_score) // 3)  # 최대 33% 영향
-        
-        return {
-            "revenue_loss_annual": revenue_loss,
-            "seo_impact": seo_impact,
-            "user_trust_impact": user_trust_impact
-        }
-    
-    else:
-        # 연결 오류 등
-        return {
-            "revenue_loss_annual": 800_000_000,  # 8억원
-            "seo_impact": 30,
-            "user_trust_impact": 75
-        }
+    """Updated business impact calculation matching new criteria."""
+
+    # Business Metrics (from new criteria)
+    monthly_visitors = 10000
+    conversion_rate = 0.02  # 2%
+    order_conversion_rate = 0.10  # 10%
+    average_order_value = 50_000_000  # KRW
+
+    # Calculate base annual revenue
+    monthly_revenue = monthly_visitors * conversion_rate * order_conversion_rate * average_order_value
+    base_revenue = monthly_revenue * 12
+
+    # Get SSL grade
+    ssl_grade = ssl_result.get("ssl_grade", "F")
+
+    # Security Loss Rates by Grade (from new criteria)
+    loss_rates = {
+        "F": {"loss": 0.50, "seo": 40, "trust": 90},  # 50% loss, 40% SEO drop, 90% trust loss
+        "D": {"loss": 0.30, "seo": 30, "trust": 70},  # 30% loss, 30% SEO drop, 70% trust loss
+        "C": {"loss": 0.20, "seo": 25, "trust": 50},  # 20% loss, 25% SEO drop, 50% trust loss
+        "B": {"loss": 0.10, "seo": 15, "trust": 30},  # 10% loss, 15% SEO drop, 30% trust loss
+        "A": {"loss": 0.05, "seo": 5, "trust": 10},   # 5% loss, 5% SEO drop, 10% trust loss
+        "A+": {"loss": 0.02, "seo": 0, "trust": 5}    # 2% loss, 0% SEO drop, 5% trust loss
+    }
+
+    # Get loss rates for current grade (handle A- grade)
+    if ssl_grade == "A-":
+        ssl_grade = "A"  # Treat A- as A for business impact
+    rates = loss_rates.get(ssl_grade, loss_rates["F"])
+
+    # Calculate impacts
+    revenue_loss = int(base_revenue * rates["loss"])
+    seo_impact = rates["seo"]
+    user_trust_impact = rates["trust"]
+
+    return {
+        "revenue_loss_annual": revenue_loss,
+        "seo_impact": seo_impact,
+        "user_trust_impact": user_trust_impact
+    }
 
 def generate_recommendations(ssl_result: dict, issues: List[dict]) -> List[str]:
     """분석 결과를 바탕으로 개선 권장사항을 생성합니다 (TSC 보고서 기준)."""

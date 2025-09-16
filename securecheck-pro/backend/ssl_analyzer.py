@@ -252,68 +252,61 @@ class SSLAnalyzer:
     
     
     def _calculate_ssl_grade_real(self, analysis_result: Dict) -> str:
-        """가이드 기준으로 SSL 등급 계산"""
-        
-        # 1. SSL 포트가 닫혀있는 경우 - F등급
+        """Updated SSL grade calculation matching new criteria"""
+
+        # Step 1: Critical Issues Check (F Grade)
         if not analysis_result.get('port_443_open', False):
-            return 'F'
-        
-        # 2. SSL 상태별 기본 등급
+            return 'F'  # Website not accessible
+
         ssl_status = analysis_result.get('ssl_status', 'connection_error')
-        
+
         if ssl_status == 'no_ssl':
-            return 'F'  # SSL 인증서가 아예 없는 경우
+            return 'F'  # No HTTPS service
         elif ssl_status == 'expired':
-            return 'F'  # SSL 인증서가 만료된 경우  
-        elif ssl_status == 'self_signed':
-            return 'D'  # 자체 서명 인증서인 경우
-        elif ssl_status == 'verify_failed':
-            return 'D'  # 인증서 검증 실패
+            return 'F'  # Expired SSL certificate
         elif ssl_status == 'connection_error':
-            return 'F'  # 연결 오류
-        elif ssl_status == 'valid':
-            # 정상 인증서의 경우 추가 평가
-            base_grade = 'B'
+            return 'F'  # Connection error
+
+        # Step 2: Base Score Calculation
+        if ssl_status == 'valid':
+            score = 80  # Valid certificate: 80 points (B grade)
+        elif ssl_status == 'self_signed':
+            score = 30  # Self-signed certificate: 30 points (D grade)
+        elif ssl_status in ['verify_failed', 'invalid']:
+            score = 30  # Invalid certificate: 30 points (D grade)
+        else:
+            score = 0   # Error analyzing certificate: 0 points (F grade)
+
+        # Step 3: Security Headers Bonus (only for valid certificates)
+        if ssl_status == 'valid':
+            present_headers = analysis_result.get('security_headers_present', [])
+            total_headers = len(self.security_headers)
+            headers_percentage = (len(present_headers) / total_headers * 100) if total_headers > 0 else 0
+
+            if headers_percentage == 100:
+                score += 10  # All recommended headers: +10 points
+            elif headers_percentage >= 50:
+                score += 5   # 50%+ headers: +5 points
+            elif headers_percentage > 0:
+                score += 2   # Some headers: +2 points
+            # No headers: 0 points (no penalty)
+
+        # Step 4: Final Grade Assignment
+        # Special handling for self-signed and invalid certificates
+        if ssl_status in ['self_signed', 'verify_failed', 'invalid']:
+            return 'D'  # Always D grade for these statuses
+
+        # Grade based on score for valid certificates
+        if score >= 95:
+            return 'A+'
+        elif score >= 90:
+            return 'A'
+        elif score >= 80:
+            return 'B'
+        elif score >= 70:
+            return 'C'
+        elif score >= 50:
+            return 'D'
         else:
             return 'F'
-        
-        # 3. 정상 인증서인 경우 추가 점수 계산
-        if ssl_status == 'valid':
-            score = 80  # B등급 기본 점수
-            
-            # 인증서 만료 임박도
-            days_until_expiry = analysis_result.get('days_until_expiry', 0)
-            if days_until_expiry > 90:
-                score += 10  # A- 가능
-            elif days_until_expiry > 30:
-                score += 5   # B+ 가능
-            elif days_until_expiry < 7:
-                score -= 20  # C등급으로 하락
-            
-            # 보안 헤더 점수
-            missing_headers = analysis_result.get('missing_security_headers', [])
-            if len(missing_headers) == 0:
-                score += 10  # 모든 헤더 완비
-            elif len(missing_headers) <= 2:
-                score += 5   # 일부 헤더 누락
-            else:
-                score -= 5   # 많은 헤더 누락
-            
-            # 등급 매핑 (가이드 기준)
-            if score >= 95:
-                return 'A+'
-            elif score >= 90:
-                return 'A'  
-            elif score >= 85:
-                return 'A-'
-            elif score >= 75:
-                return 'B'
-            elif score >= 65:
-                return 'C'
-            elif score >= 50:
-                return 'D'
-            else:
-                return 'F'
-        
-        return base_grade
     
