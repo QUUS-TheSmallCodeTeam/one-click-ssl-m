@@ -263,38 +263,44 @@ async def download_report(report_id: str):
 
 
 def calculate_security_score(ssl_result: dict) -> int:
-    """실제 SSL 분석 결과를 바탕으로 보안 점수를 계산합니다 (TSC 보고서 기준)."""
-    
+    """실제 SSL 분석 결과를 바탕으로 보안 점수를 계산합니다 (새로운 채점 기준)."""
+
     # SSL 상태에 따른 기본 점수
     ssl_status = ssl_result.get('ssl_status', 'connection_error')
-    
+
     if ssl_status == 'no_ssl' or not ssl_result.get('port_443_open', False):
-        # TSC 보고서: SSL 서비스 완전 부재
-        return 0
+        return 0  # F grade: No SSL
     elif ssl_status == 'expired':
-        return 10  # 만료된 인증서
+        return 0  # F grade: Expired certificate
+    elif ssl_status == 'connection_error':
+        return 0  # F grade: Connection error
     elif ssl_status == 'self_signed':
-        return 25  # 자체 서명 인증서
-    elif ssl_status == 'verify_failed':
-        return 30  # 인증서 검증 실패
+        return 30  # D grade: Self-signed certificate
+    elif ssl_status in ['verify_failed', 'invalid']:
+        return 30  # D grade: Invalid certificate
     elif ssl_status == 'valid':
-        # 정상 SSL 인증서의 경우 등급에 따른 점수
-        ssl_grade = ssl_result.get("ssl_grade", "B")
-        grade_scores = {"A+": 95, "A": 90, "A-": 85, "B": 75, "C": 60, "D": 40}
-        score = grade_scores.get(ssl_grade, 40)
-        
-        # 보안 헤더 상태 반영
-        missing_headers = ssl_result.get("missing_security_headers", [])
-        score -= len(missing_headers) * 3
-        
-        # 인증서 만료 임박도
-        days_until_expiry = ssl_result.get('days_until_expiry', 0)
-        if days_until_expiry < 30:
-            score -= 10
-        
-        return max(0, score)
+        # Valid certificate: 80 points base
+        score = 80
+
+        # Security headers bonus (only for valid certificates)
+        present_headers = ssl_result.get('security_headers_present', [])
+        missing_headers = ssl_result.get('missing_security_headers', [])
+        total_headers = len(present_headers) + len(missing_headers)
+
+        if total_headers > 0:
+            headers_percentage = (len(present_headers) / total_headers) * 100
+
+            if headers_percentage == 100:
+                score += 10  # All headers: +10
+            elif headers_percentage >= 50:
+                score += 5   # 50%+ headers: +5
+            elif headers_percentage > 0:
+                score += 2   # Some headers: +2
+            # No headers: 0 (no bonus)
+
+        return score
     else:
-        return 0  # 연결 오류
+        return 0  # Unknown status: F grade
 
 def extract_issues(ssl_result: dict) -> List[dict]:
     """SSL 분석 결과에서 보안 문제를 추출합니다 (TSC 보고서 기준)."""

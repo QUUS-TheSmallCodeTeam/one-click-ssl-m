@@ -583,7 +583,7 @@ server {{<br/>
         story.append(Paragraph("현재 보안 수준 평가", subheading_style))
         
         # Updated score mapping for all grades including A-
-        ssl_score = 100 if ssl_grade == 'A+' else 90 if ssl_grade == 'A' else 85 if ssl_grade == 'A-' else 75 if ssl_grade == 'B' else 60 if ssl_grade == 'C' else 40 if ssl_grade == 'D' else 15
+        ssl_score = 95 if ssl_grade == 'A+' else 90 if ssl_grade == 'A' else 85 if ssl_grade == 'A-' else 80 if ssl_grade == 'B' else 70 if ssl_grade == 'C' else 50 if ssl_grade == 'D' else 0
         
         security_assessment = f"""SSL Labs 등급: {ssl_grade}
 보안 점수: {ssl_score}/100
