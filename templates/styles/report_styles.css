@@ -1,4 +1,4 @@
-/* SecureCheck Pro 보고서 전용 CSS (PDF 최적화) */
+/* 원클릭SSL 보고서 전용 CSS (PDF 최적화) */
 
 /* 페이지 설정 */
 @page {
@@ -6,7 +6,7 @@
     margin: 2.5cm 2cm;
     
     @top-center {
-        content: "SecureCheck Pro 보안 분석 보고서";
+        content: "원클릭SSL 보안 분석 보고서";
         font-size: 10px;
         color: #666;
     }

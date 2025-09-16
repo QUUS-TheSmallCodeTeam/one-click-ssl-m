@@ -19,7 +19,7 @@ from reportlab.pdfbase import pdfmetrics
 from reportlab.pdfbase.ttfonts import TTFont
 
 app = FastAPI(
-    title="SecureCheck Pro API",
+    title="원클릭SSL API",
     description="웹사이트 보안 분석 및 보고서 생성 API",
     version="1.0.0"
 )
@@ -64,7 +64,7 @@ ssl_analyzer = SSLAnalyzer()
 
 @app.get("/")
 async def root():
-    return {"message": "SecureCheck Pro API", "version": "1.0.0"}
+    return {"message": "원클릭SSL API", "version": "1.0.0"}
 
 @app.post("/api/v1/analyze", response_model=AnalyzeResponse)
 async def analyze_website(request: AnalyzeRequest):

@@ -4,7 +4,7 @@ This file provides guidance to Claude Code (claude.ai/code) when working with co
 
 ## Project Overview
 
-SecureCheck Pro is a Korean web security analysis service that performs comprehensive SSL/TLS analysis and generates professional security reports in PDF format. The service is built as a full-stack application with a Next.js frontend and FastAPI backend, designed for deployment on Hugging Face Spaces.
+원클릭SSL is a Korean web security analysis service that performs comprehensive SSL/TLS analysis and generates professional security reports in PDF format. The service is built as a full-stack application with a Next.js frontend and FastAPI backend, designed for deployment on Hugging Face Spaces.
 
 ## Development Commands
 
@@ -46,6 +46,10 @@ Both servers need to be running simultaneously:
 - `SecurityAnalyzer.tsx` - Main analysis interface component
 - `SecurityReport.tsx` - Results display and PDF download
 - TypeScript with Tailwind CSS styling
+
+**Reference Implementation**
+- `/ssl-checker/` - Contains reference SSL checker logic and implementation patterns
+- Can be used as a reference for SSL analysis algorithms and validation approaches
 
 ### Key API Endpoints
 

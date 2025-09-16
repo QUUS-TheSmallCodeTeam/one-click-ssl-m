@@ -31,7 +31,7 @@ RUN cd securecheck-pro/frontend && npm install && npm run build
 # Create simple entrypoint script
 RUN echo '#!/bin/bash\n\
 set -e\n\
-echo "Starting SecureCheck Pro services..."\n\
+echo "Starting 원클릭SSL services..."\n\
 \n\
 # Start FastAPI backend in background\n\
 echo "Starting FastAPI backend on port 8000..."\n\

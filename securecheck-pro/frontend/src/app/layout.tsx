@@ -15,7 +15,7 @@ const jetbrainsMono = JetBrains_Mono({
 });
 
 export const metadata: Metadata = {
-  title: "SecureCheck Pro - 웹사이트 보안 분석",
+  title: "원클릭SSL - 웹사이트 보안 분석",
   description: "웹사이트 보안 취약점을 종합 분석하고 비즈니스 영향을 평가하는 전문 도구",
 };
 

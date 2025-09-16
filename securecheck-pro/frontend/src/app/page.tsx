@@ -6,7 +6,7 @@ export default function Home() {
       <div className="container mx-auto px-4 py-8">
         <div className="text-center mb-12">
           <h1 className="text-5xl font-bold text-gray-900 mb-4">
-            SecureCheck Pro
+            원클릭SSL
           </h1>
           <p className="text-xl text-gray-600 mb-8">
             웹사이트 URL을 입력하면 종합 보안 분석 보고서를 자동으로 생성합니다

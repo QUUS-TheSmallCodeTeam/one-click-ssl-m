@@ -148,7 +148,7 @@ export function SecurityReport({ data }: SecurityReportProps) {
                 <p><strong>분석 일시:</strong> ${analysisDate}</p>
             </div>
             <div>
-                <p><strong>분석자:</strong> SecureCheck Pro Security Analysis Team</p>
+                <p><strong>분석자:</strong> 원클릭SSL Security Analysis Team</p>
                 <p><strong>보고서 버전:</strong> 1.0</p>
             </div>
         </div>
@@ -280,7 +280,7 @@ export function SecurityReport({ data }: SecurityReportProps) {
     </div>
 
     <div class="footer">
-        <p><strong>보고서 문의:</strong> SecureCheck Pro Security Analysis Team</p>
+        <p><strong>보고서 문의:</strong> 원클릭SSL Security Analysis Team</p>
         <p><strong>분석 완료:</strong> ${new Date().toLocaleString('ko-KR')}</p>
         <p><em>이 보고서는 ${analysisDate} 현재 상황을 기준으로 작성되었습니다.</em></p>
         <p style="margin-top: 20px; font-size: 12px; color: #999;">

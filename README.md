@@ -1,5 +1,5 @@
 ---
-title: SecureCheck Pro - 원클릭 SSL체크
+title: 원클릭SSL - 원클릭 SSL체크
 emoji: 🔐⚡🛡️
 colorFrom: blue
 colorTo: green
@@ -8,7 +8,7 @@ app_port: 7860
 pinned: false
 ---
 
-# SecureCheck Pro - 원클릭 SSL체크 🔐
+# 원클릭SSL - 원클릭 SSL체크 🔐
 
 웹사이트의 SSL/TLS 보안을 간편하게 분석하고 상세한 보고서를 생성하는 한국어 웹 보안 분석 서비스입니다.
 

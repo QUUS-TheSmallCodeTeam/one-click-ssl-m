@@ -215,7 +215,7 @@ def create_tsc_style_pdf_report(analysis_data: Dict[str, Any]) -> bytes:
         header_info = f"""
         <b>분석 대상</b>: {domain}<br/>
         <b>분석 일시</b>: {analysis_date}<br/>
-        <b>분석자</b>: SecureCheck Pro Security Analysis Team<br/>
+        <b>분석자</b>: 원클릭SSL Security Analysis Team<br/>
         <b>보고서 버전</b>: 1.0
         """
         story.append(Paragraph(header_info, body_style))
@@ -1035,7 +1035,7 @@ SSL 인증서 문제와 HTTPS 서비스 중단은 고객 신뢰도와 비즈니�
         
         # 푸터 (TSC 스타일)
         footer_text = f"""
-<b>보고서 문의</b>: SecureCheck Pro Security Analysis Team<br/>
+<b>보고서 문의</b>: 원클릭SSL Security Analysis Team<br/>
 <b>긴급 연락</b>: [보안 문제 발견시 즉시 연락]<br/>
 <b>다음 점검 예정</b>: 권장사항 이행 후 1주일 뒤 재점검<br/><br/>
 
