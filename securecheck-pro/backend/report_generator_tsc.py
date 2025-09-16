@@ -201,7 +201,17 @@ def create_tsc_style_pdf_report(analysis_data: Dict[str, Any]) -> bytes:
         avg_order_value = 50000000  # 5천만원
         
         # 보안 문제로 인한 손실 계산
-        security_loss_rate = 0.5 if ssl_grade == 'F' else 0.3 if ssl_grade == 'D' else 0.1
+        # Updated loss rates matching new grading criteria
+        loss_rates = {
+            'F': 0.50,  # 50% loss
+            'D': 0.30,  # 30% loss
+            'C': 0.20,  # 20% loss
+            'B': 0.10,  # 10% loss
+            'A': 0.05,  # 5% loss
+            'A-': 0.05,  # 5% loss (same as A)
+            'A+': 0.02  # 2% loss
+        }
+        security_loss_rate = loss_rates.get(ssl_grade, 0.5)
         monthly_loss_visitors = int(monthly_visitors * security_loss_rate)
         annual_revenue_loss = monthly_loss_visitors * 12 * conversion_rate * order_conversion * avg_order_value
         
@@ -237,14 +247,25 @@ def create_tsc_style_pdf_report(analysis_data: Dict[str, Any]) -> bytes:
 """
         elif ssl_grade in ['D', 'C']:
             status_summary = f"""
-{domain} 웹사이트에 대한 보안 분석 결과, <b>보안 설정 개선이 필요한 상태</b>로 
-확인되었습니다. 기본적인 SSL 인증서는 설치되어 있으나, 추가적인 보안 강화가 
+{domain} 웹사이트에 대한 보안 분석 결과, <b>보안 설정 개선이 필요한 상태</b>로
+확인되었습니다. 기본적인 SSL 인증서는 설치되어 있으나, 추가적인 보안 강화가
 필요한 상황입니다.
 """
-        else:
+        elif ssl_grade == 'B':
             status_summary = f"""
-{domain} 웹사이트의 보안 상태는 전반적으로 양호합니다. 
-지속적인 모니터링과 최신 보안 동향 반영을 통해 현재 수준을 유지하시기 바랍니다.
+{domain} 웹사이트는 기본적인 SSL 보안이 적용되어 있으나 <b>추가 보안 강화를 통한
+경쟁력 향상이 가능한 상태</b>입니다. 업계 최고 수준의 보안을 구현하여
+고객 신뢰도를 극대화할 수 있습니다.
+"""
+        elif ssl_grade in ['A', 'A-']:
+            status_summary = f"""
+{domain} 웹사이트는 <b>우수한 SSL 보안 수준</b>을 유지하고 있습니다.
+약간의 개선으로 최고 등급(A+)을 달성할 수 있습니다.
+"""
+        else:  # A+
+            status_summary = f"""
+{domain} 웹사이트는 <b>업계 최고 수준의 SSL 보안</b>을 구현하고 있습니다.
+현재 수준을 유지하며 지속적인 모니터링이 권장됩니다.
 """
         
         story.append(Paragraph(status_summary, body_style))
@@ -310,10 +331,18 @@ def create_tsc_style_pdf_report(analysis_data: Dict[str, Any]) -> bytes:
             recommendations_content += "1. <b>필수</b>: SSL 설정 강화 (1주 이내)<br/>"
             recommendations_content += "2. <b>권장</b>: 보안 헤더 설정 (2주 이내)<br/>"
             recommendations_content += "3. <b>권장</b>: 정기적인 보안 점검 체계 구축 (1개월 이내)<br/>"
-        else:
-            recommendations_content += "1. <b>권장</b>: 정기적인 보안 모니터링 시스템 구축<br/>"
-            recommendations_content += "2. <b>권장</b>: 보안 정책 업데이트 및 교육<br/>"
-            recommendations_content += "3. <b>권장</b>: 백업 및 복구 체계 점검<br/>"
+        elif ssl_grade == 'B':
+            recommendations_content += "1. <b>권장</b>: 보안 헤더 최적화 (2주 이내)<br/>"
+            recommendations_content += "2. <b>권장</b>: SSL 설정 미세 튜닝 (1개월 이내)<br/>"
+            recommendations_content += "3. <b>권장</b>: 성능 모니터링 강화<br/>"
+        elif ssl_grade in ['A', 'A-']:
+            recommendations_content += "1. <b>권장</b>: 모든 보안 헤더 적용 (A+ 달성)<br/>"
+            recommendations_content += "2. <b>권장</b>: 지속적인 보안 모니터링<br/>"
+            recommendations_content += "3. <b>권장</b>: 새로운 보안 기술 적용 검토<br/>"
+        else:  # A+
+            recommendations_content += "1. <b>현재 수준 유지</b>: 최고 보안 수준 유지<br/>"
+            recommendations_content += "2. <b>권장</b>: 정기적인 보안 감사<br/>"
+            recommendations_content += "3. <b>권장</b>: 새로운 보안 트렌드 반영<br/>"
         
         story.append(Paragraph(recommendations_content, body_style))
         story.append(Spacer(1, 15))
@@ -553,7 +582,8 @@ server {{<br/>
         # 현재 보안 수준 평가
         story.append(Paragraph("현재 보안 수준 평가", subheading_style))
         
-        ssl_score = 100 if ssl_grade == 'A+' else 85 if ssl_grade == 'A' else 70 if ssl_grade == 'B' else 50 if ssl_grade == 'C' else 30 if ssl_grade == 'D' else 15
+        # Updated score mapping for all grades including A-
+        ssl_score = 100 if ssl_grade == 'A+' else 90 if ssl_grade == 'A' else 85 if ssl_grade == 'A-' else 75 if ssl_grade == 'B' else 60 if ssl_grade == 'C' else 40 if ssl_grade == 'D' else 15
         
         security_assessment = f"""SSL Labs 등급: {ssl_grade}
 보안 점수: {ssl_score}/100
