@@ -1,6 +1,0 @@
-fastapi
-uvicorn[standard]
-requests
-aiohttp
-reportlab
-python-multipart
