@@ -1,0 +1,62 @@
+@import "tailwindcss";
+
+:root {
+  --background: #ffffff;
+  --foreground: #1f2937;
+  --primary: #3b82f6;
+  --secondary: #6b7280;
+  --success: #10b981;
+  --warning: #f59e0b;
+  --danger: #ef4444;
+}
+
+@theme inline {
+  --color-background: var(--background);
+  --color-foreground: var(--foreground);
+  --font-sans: var(--font-noto-sans-kr);
+  --font-mono: var(--font-jetbrains-mono);
+}
+
+@media (prefers-color-scheme: dark) {
+  :root {
+    --background: #0f172a;
+    --foreground: #f1f5f9;
+  }
+}
+
+body {
+  background: var(--background);
+  color: var(--foreground);
+  font-family: 'Noto Sans KR', -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, 'Helvetica Neue', Arial, sans-serif;
+  line-height: 1.6;
+}
+
+/* TSC 보고서 스타일 */
+.report-header {
+  border-bottom: 3px solid #3b82f6;
+  margin-bottom: 2rem;
+}
+
+.report-section {
+  margin-bottom: 2.5rem;
+  padding: 1.5rem;
+  border: 1px solid #e5e7eb;
+  border-radius: 8px;
+  background-color: #fafafa;
+}
+
+.severity-critical {
+  @apply bg-red-50 text-red-900 border border-red-200;
+}
+
+.severity-high {
+  @apply bg-orange-50 text-orange-900 border border-orange-200;
+}
+
+.severity-medium {
+  @apply bg-yellow-50 text-yellow-900 border border-yellow-200;
+}
+
+.severity-low {
+  @apply bg-green-50 text-green-900 border border-green-200;
+}
