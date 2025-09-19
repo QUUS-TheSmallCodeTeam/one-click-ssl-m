@@ -65,6 +65,7 @@ export default function AuthButton() {
       <div className="flex items-center space-x-4">
         <div className="flex items-center space-x-2">
           {user.user_metadata?.avatar_url && (
+            // eslint-disable-next-line @next/next/no-img-element
             <img
               src={user.user_metadata.avatar_url}
               alt="Profile"

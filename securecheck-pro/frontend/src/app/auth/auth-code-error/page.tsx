@@ -1,3 +1,5 @@
+import Link from 'next/link'
+
 export default function AuthCodeError() {
   return (
     <div className="min-h-screen bg-gradient-to-br from-blue-50 to-indigo-100 flex items-center justify-center">
@@ -7,12 +9,12 @@ export default function AuthCodeError() {
         <p className="text-gray-600 mb-6">
           Google 로그인 중 오류가 발생했습니다. 다시 시도해 주세요.
         </p>
-        <a
+        <Link
           href="/"
           className="inline-block bg-blue-600 text-white px-6 py-3 rounded-lg hover:bg-blue-700 transition-colors"
         >
           홈으로 돌아가기
-        </a>
+        </Link>
       </div>
     </div>
   )
