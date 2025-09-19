@@ -1,9 +1,14 @@
 import { SecurityAnalyzer } from '@/components/SecurityAnalyzer';
+import AuthButton from '@/components/AuthButton';
 
 export default function Home() {
   return (
     <main className="min-h-screen bg-gradient-to-br from-blue-50 to-indigo-100">
       <div className="container mx-auto px-4 py-8">
+        <div className="flex justify-end mb-8">
+          <AuthButton />
+        </div>
+
         <div className="text-center mb-12">
           <h1 className="text-5xl font-bold text-gray-900 mb-4">
             원클릭SSL
