@@ -411,8 +411,8 @@ def calculate_business_impact(security_score: int, ssl_result: dict, issues: Lis
         ssl_grade = "A"  # Treat A- as A for business impact
     rates = loss_rates.get(ssl_grade, loss_rates["F"])
 
-    # Calculate impacts
-    revenue_loss = int(base_revenue * rates["loss"])
+    # Calculate impacts - set revenue loss to 0 (will show as '-' in frontend)
+    revenue_loss = 0
     seo_impact = rates["seo"]
     user_trust_impact = rates["trust"]
 

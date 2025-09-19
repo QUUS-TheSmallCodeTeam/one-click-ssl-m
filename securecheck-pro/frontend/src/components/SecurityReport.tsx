@@ -174,7 +174,7 @@ export function SecurityReport({ data }: SecurityReportProps) {
             </div>
             <div class="metric-card critical">
                 <span class="metric-label">예상 연간 손실</span>
-                <span class="metric-number">₩${data.business_impact.revenue_loss_annual.toLocaleString()}</span>
+                <span class="metric-number">${data.business_impact.revenue_loss_annual === 0 ? '-' : '₩' + data.business_impact.revenue_loss_annual.toLocaleString()}</span>
             </div>
         </div>
 
@@ -250,7 +250,7 @@ export function SecurityReport({ data }: SecurityReportProps) {
     <h2>💰 비즈니스 영향 분석</h2>
     <div class="business-impact">
         <h3>단기 영향 (1-3개월)</h3>
-        <p><strong>예상 매출 손실:</strong> ₩${data.business_impact.revenue_loss_annual.toLocaleString()}/년</p>
+        <p><strong>예상 매출 손실:</strong> ${data.business_impact.revenue_loss_annual === 0 ? '-' : '₩' + data.business_impact.revenue_loss_annual.toLocaleString() + '/년'}</p>
         <p><strong>SEO 순위 하락:</strong> ${data.business_impact.seo_impact}%</p>
         <p><strong>고객 신뢰도 하락:</strong> ${data.business_impact.user_trust_impact}%</p>
     </div>
@@ -466,7 +466,7 @@ export function SecurityReport({ data }: SecurityReportProps) {
                   <div className="ml-3">
                     <h4 className="text-sm font-medium text-orange-800">예상 매출 손실</h4>
                     <p className="mt-1 text-sm text-orange-700 font-bold">
-                      ₩{data.business_impact.revenue_loss_annual.toLocaleString()}/년
+                      {data.business_impact.revenue_loss_annual === 0 ? '-' : `₩${data.business_impact.revenue_loss_annual.toLocaleString()}/년`}
                     </p>
                   </div>
                 </div>
