@@ -395,7 +395,7 @@ export function SecurityReport({ data }: SecurityReportProps) {
                 <tbody className="divide-y divide-gray-200">
                   {data.issues.map((issue, index) => (
                     <tr key={index} className="hover:bg-gray-50">
-                      <td className="px-4 py-3">
+                      <td className="px-4 py-3 w-3/5 max-w-md">
                         <div className="font-medium text-gray-900">{issue.title}</div>
                         <div className="text-sm text-gray-600">{issue.description}</div>
                       </td>
@@ -416,7 +416,7 @@ export function SecurityReport({ data }: SecurityReportProps) {
                          issue.severity === 'high' ? '높음' :
                          issue.severity === 'medium' ? '중간' : '낮음'}
                       </td>
-                      <td className="px-4 py-3">
+                      <td className="px-4 py-3 whitespace-nowrap">
                         <span className={`text-sm font-medium ${
                           issue.severity === 'critical' || issue.severity === 'high' ? 'text-red-600' :
                           issue.severity === 'medium' ? 'text-yellow-600' : 'text-green-600'
