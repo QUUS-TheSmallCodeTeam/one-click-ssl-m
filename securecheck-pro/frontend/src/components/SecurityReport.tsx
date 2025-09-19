@@ -122,7 +122,7 @@ export function SecurityReport({ data }: SecurityReportProps) {
         .issue-medium { border-left: 4px solid #f1c40f; }
         .issue-low { border-left: 4px solid #27ae60; }
         .severity { display: inline-block; padding: 4px 8px; border-radius: 4px;
-                   font-size: 12px; font-weight: bold; margin-right: 10px; }
+                   font-size: 12px; font-weight: bold; margin-right: 10px; white-space: nowrap; }
         .severity-critical { background: #e74c3c; color: white; }
         .severity-high { background: #f39c12; color: white; }
         .severity-medium { background: #f1c40f; color: #333; }

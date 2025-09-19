@@ -338,6 +338,15 @@ def extract_issues(ssl_result: dict) -> List[dict]:
             "title": "SSL 인증서 만료",
             "description": "SSL 인증서가 만료되어 브라우저에서 보안 경고를 표시합니다."
         })
+
+    # 2-1. SSL 연결 오류
+    if ssl_status == 'connection_error':
+        issues.append({
+            "type": "connection",
+            "severity": "critical",
+            "title": "SSL 연결 실패",
+            "description": "HTTPS 포트(443)로의 연결이 실패하거나 SSL 핸드셰이크 과정에서 오류가 발생합니다."
+        })
     
     # 3. 자체 서명 인증서
     if ssl_status == 'self_signed':
@@ -355,6 +364,15 @@ def extract_issues(ssl_result: dict) -> List[dict]:
             "severity": "critical",
             "title": "SSL 인증서 검증 실패",
             "description": "브라우저에서 SSL 인증서를 신뢰할 수 없습니다. 인증 기관이 유효하지 않거나 체인이 불완전합니다."
+        })
+
+    # 4-1. 잘못된 인증서
+    if ssl_status == 'invalid':
+        issues.append({
+            "type": "certificate",
+            "severity": "critical",
+            "title": "SSL 인증서 무효",
+            "description": "SSL 인증서가 손상되었거나 형식이 올바르지 않습니다. 도메인 불일치 또는 인증서 파일 오류가 원인일 수 있습니다."
         })
 
     # 5. 보안 헤더 누락 (정상 SSL인 경우에도 체크)
