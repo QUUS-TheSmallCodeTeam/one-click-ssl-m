@@ -26,8 +26,19 @@ class SSLAnalyzer:
     async def analyze(self, url: str) -> Dict:
         """웹사이트의 전체 SSL 보안 분석을 수행합니다 - SSL_Certificate_Analysis_Guide.md 방법론 적용"""
         parsed_url = urlparse(url)
-        domain = parsed_url.netloc or parsed_url.path
-        port = 443  # HTTPS 포트 고정
+
+        # 포트 추출 (URL에 포트가 명시된 경우)
+        if ':' in parsed_url.netloc and not parsed_url.netloc.endswith(']:'):
+            domain, port_str = parsed_url.netloc.rsplit(':', 1)
+            try:
+                port = int(port_str)
+            except ValueError:
+                domain = parsed_url.netloc
+                port = 443  # 기본 HTTPS 포트
+        else:
+            domain = parsed_url.netloc or parsed_url.path
+            # 스키마에 따른 기본 포트
+            port = 443 if parsed_url.scheme == 'https' else 80
         
         result = {
             'domain': domain,
@@ -35,14 +46,28 @@ class SSLAnalyzer:
             'analyzed_at': datetime.now().isoformat(),
             'url_scheme': parsed_url.scheme
         }
-        
+
+        # HTTP 스키마인 경우 SSL 체크 불가
+        if parsed_url.scheme == 'http' or port == 80:
+            result.update({
+                'ssl_grade': 'F',
+                'certificate_valid': False,
+                'ssl_status': 'no_ssl',
+                'analysis_result': 'HTTP 프로토콜 사용 - SSL 없음'
+            })
+            return result
+
         try:
             # 1. 포트 연결 테스트 (가이드의 nc -z 명령 구현)
             port_status = await self._test_port_connection(domain, port)
             result.update(port_status)
             
             if not port_status.get('port_443_open', False):
-                # 443 포트가 닫혀있으면 SSL 없음
+                # 443 포트 연결 실패시 HTTP 리다이렉션 체크
+                http_redirect_info = await self._check_http_redirect(domain)
+                result.update(http_redirect_info)
+
+                # 여전히 SSL 없음으로 판단
                 result.update({
                     'ssl_grade': 'F',
                     'certificate_valid': False,
@@ -70,27 +95,83 @@ class SSLAnalyzer:
         return result
     
     async def _test_port_connection(self, domain: str, port: int) -> Dict:
-        """포트 연결 테스트 (가이드의 nc -z domain 443 구현)"""
+        """포트 연결 테스트 (가이드의 nc -z domain 443 구현) - 재시도 로직 포함"""
+        max_retries = 3
+        retry_delay = 1  # 1초 간격
+
+        for attempt in range(max_retries):
+            try:
+                # 소켓 연결 테스트 (nc -z와 동일한 기능)
+                sock = socket.socket(socket.AF_INET, socket.SOCK_STREAM)
+                sock.settimeout(10)  # 타임아웃 증가 (5초 → 10초)
+                result = sock.connect_ex((domain, port))
+                sock.close()
+
+                if result == 0:
+                    return {
+                        'port_443_open': True,
+                        'port_test_result': 'success',
+                        'port_error_code': result,
+                        'attempts': attempt + 1
+                    }
+
+                # 연결 실패시 재시도 (마지막 시도가 아닌 경우)
+                if attempt < max_retries - 1:
+                    await asyncio.sleep(retry_delay)
+                    continue
+
+                return {
+                    'port_443_open': False,
+                    'port_test_result': 'connection_refused',
+                    'port_error_code': result,
+                    'attempts': attempt + 1
+                }
+
+            except Exception as e:
+                # 예외 발생시 재시도 (마지막 시도가 아닌 경우)
+                if attempt < max_retries - 1:
+                    await asyncio.sleep(retry_delay)
+                    continue
+
+                return {
+                    'port_443_open': False,
+                    'port_test_result': 'error',
+                    'port_error': str(e),
+                    'attempts': attempt + 1
+                }
+
+    async def _check_http_redirect(self, domain: str) -> Dict:
+        """HTTP 접속시 HTTPS로 리다이렉트되는지 확인"""
         try:
-            # 소켓 연결 테스트 (nc -z와 동일한 기능)
-            sock = socket.socket(socket.AF_INET, socket.SOCK_STREAM)
-            sock.settimeout(5)  # 5초 타임아웃
-            result = sock.connect_ex((domain, port))
-            sock.close()
-            
-            return {
-                'port_443_open': result == 0,
-                'port_test_result': 'success' if result == 0 else 'connection_refused',
-                'port_error_code': result
-            }
-            
+            import aiohttp
+            async with aiohttp.ClientSession() as session:
+                # HTTP로 접속하여 리다이렉트 확인
+                async with session.get(f'http://{domain}',
+                                     allow_redirects=False,
+                                     timeout=aiohttp.ClientTimeout(total=10)) as response:
+
+                    # 3xx 리다이렉트 응답 확인
+                    if response.status in [301, 302, 303, 307, 308]:
+                        location = response.headers.get('Location', '')
+                        if location.startswith('https://'):
+                            return {
+                                'http_redirect_to_https': True,
+                                'redirect_location': location,
+                                'redirect_note': 'HTTP에서 HTTPS로 리다이렉트됨'
+                            }
+
+                    return {
+                        'http_redirect_to_https': False,
+                        'redirect_note': 'HTTP 리다이렉트 없음'
+                    }
+
         except Exception as e:
             return {
-                'port_443_open': False,
-                'port_test_result': 'error',
-                'port_error': str(e)
+                'http_redirect_to_https': False,
+                'redirect_error': str(e),
+                'redirect_note': 'HTTP 접속 실패'
             }
-    
+
     async def _analyze_certificate_real(self, domain: str, port: int) -> Dict:
         """실제 SSL 인증서 분석 (가이드의 openssl s_client 구현)"""
         cert = None
