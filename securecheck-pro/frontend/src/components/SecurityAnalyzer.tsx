@@ -86,7 +86,7 @@ export function SecurityAnalyzer() {
             웹사이트 URL 입력
           </label>
           
-          <div className="flex space-x-4">
+          <div className="flex flex-col sm:flex-row space-y-4 sm:space-y-0 sm:space-x-4">
             <input
               id="url-input"
               type="url"

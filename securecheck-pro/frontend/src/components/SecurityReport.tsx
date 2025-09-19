@@ -296,7 +296,7 @@ export function SecurityReport({ data }: SecurityReportProps) {
       {/* 보고서 헤더 */}
       <div className="report-header bg-white rounded-lg shadow-lg p-8">
         <div className="text-center mb-6">
-          <h1 className="text-4xl font-bold text-gray-900 mb-2">
+          <h1 className="text-xl sm:text-2xl lg:text-4xl font-bold text-gray-900 mb-2">
             {data.url.replace(/https?:\/\//, '').toUpperCase()} 웹사이트 보안 분석 보고서
           </h1>
           <div className="text-lg text-gray-600 space-y-1">
