@@ -39,16 +39,32 @@ class SSLAnalyzer:
             domain = parsed_url.netloc or parsed_url.path
             # 스키마에 따른 기본 포트
             port = 443 if parsed_url.scheme == 'https' else 80
-        
+
+        # www가 있으면 www 없는 버전도 체크해서 더 나은 결과 사용
+        domains_to_check = [domain]
+        if domain.startswith('www.'):
+            non_www_domain = domain[4:]  # www. 제거
+            domains_to_check.append(non_www_domain)
+
+        # 병렬로 동시에 분석
+        tasks = [self._analyze_single_domain(check_domain, port, parsed_url.scheme) for check_domain in domains_to_check]
+        results = await asyncio.gather(*tasks, return_exceptions=True)
+
+        # 더 좋은 결과 선택 (F가 아닌 것 우선, 같으면 더 높은 등급)
+        best_result = self._select_best_result(results, domain)
+        return best_result
+
+    async def _analyze_single_domain(self, domain: str, port: int, scheme: str) -> Dict:
+        """단일 도메인에 대한 SSL 분석을 수행합니다"""
         result = {
             'domain': domain,
             'port': port,
             'analyzed_at': datetime.now().isoformat(),
-            'url_scheme': parsed_url.scheme
+            'url_scheme': scheme
         }
 
         # HTTP 스키마인 경우 SSL 체크 불가
-        if parsed_url.scheme == 'http' or port == 80:
+        if scheme == 'http' or port == 80:
             result.update({
                 'ssl_grade': 'F',
                 'certificate_valid': False,
@@ -80,8 +96,9 @@ class SSLAnalyzer:
             cert_info = await self._analyze_certificate_real(domain, port)
             result.update(cert_info)
             
-            # 3. 보안 헤더 분석  
-            headers_info = await self._analyze_security_headers(url)
+            # 3. 보안 헤더 분석
+            domain_url = f"{scheme}://{domain}:{port}" if port not in [80, 443] else f"{scheme}://{domain}"
+            headers_info = await self._analyze_security_headers(domain_url)
             result.update(headers_info)
             
             # 4. 전체 SSL 등급 계산 (가이드 기준)
@@ -91,8 +108,40 @@ class SSLAnalyzer:
             result['error'] = str(e)
             result['ssl_grade'] = 'F'
             result['certificate_valid'] = False
-            
+
         return result
+
+    def _select_best_result(self, results: List, original_domain: str) -> Dict:
+        """여러 결과 중 가장 좋은 결과를 선택합니다"""
+        # 예외 처리된 결과 제외
+        valid_results = [r for r in results if not isinstance(r, Exception)]
+
+        if not valid_results:
+            return {
+                'domain': original_domain,
+                'ssl_grade': 'F',
+                'certificate_valid': False,
+                'ssl_status': 'error',
+                'analysis_result': '분석 중 오류 발생'
+            }
+
+        # 등급 순서 정의 (좋은 순서대로)
+        grade_order = ['A+', 'A', 'B', 'C', 'D', 'F']
+
+        def grade_score(grade):
+            try:
+                return grade_order.index(grade)
+            except ValueError:
+                return len(grade_order)  # F보다 나쁜 경우
+
+        # 가장 좋은 등급 찾기
+        best_result = min(valid_results, key=lambda x: grade_score(x.get('ssl_grade', 'F')))
+
+        # 원래 도메인 정보 유지하되 최고 결과 사용
+        best_result['original_domain'] = original_domain
+        best_result['checked_domains'] = [r.get('domain') for r in valid_results]
+
+        return best_result
     
     async def _test_port_connection(self, domain: str, port: int) -> Dict:
         """포트 연결 테스트 (가이드의 nc -z domain 443 구현) - 재시도 로직 포함"""
