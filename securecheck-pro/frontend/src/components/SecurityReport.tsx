@@ -353,7 +353,7 @@ export function SecurityReport({ data }: SecurityReportProps) {
               <div className="p-3 bg-red-50 border border-red-200 rounded">
                 <div className="text-sm font-medium text-red-800">예상 연간 매출 손실</div>
                 <div className="text-xl font-bold text-red-600">
-                  ₩{data.business_impact.revenue_loss_annual.toLocaleString()}
+                  -
                 </div>
               </div>
               <div className="p-3 bg-yellow-50 border border-yellow-200 rounded">
