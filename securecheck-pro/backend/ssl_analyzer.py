@@ -97,48 +97,70 @@ class SSLAnalyzer:
     async def _test_port_connection(self, domain: str, port: int) -> Dict:
         """포트 연결 테스트 (가이드의 nc -z domain 443 구현) - 재시도 로직 포함"""
         max_retries = 3
-        retry_delay = 1  # 1초 간격
+        retry_delay = 2  # 2초 간격으로 증가
 
         for attempt in range(max_retries):
             try:
-                # 소켓 연결 테스트 (nc -z와 동일한 기능)
-                sock = socket.socket(socket.AF_INET, socket.SOCK_STREAM)
-                sock.settimeout(10)  # 타임아웃 증가 (5초 → 10초)
-                result = sock.connect_ex((domain, port))
-                sock.close()
+                # SSL 직접 연결 시도 (더 신뢰성 있는 방법)
+                import ssl as ssl_module
+                context = ssl_module.create_default_context()
+                context.check_hostname = False
+                context.verify_mode = ssl_module.CERT_NONE
 
-                if result == 0:
+                with socket.create_connection((domain, port), timeout=15) as sock:
+                    with context.wrap_socket(sock, server_hostname=domain) as ssock:
+                        # SSL 연결 성공
+                        return {
+                            'port_443_open': True,
+                            'port_test_result': 'success',
+                            'port_error_code': 0,
+                            'attempts': attempt + 1,
+                            'connection_method': 'ssl_direct'
+                        }
+
+            except Exception as ssl_error:
+                # SSL 연결 실패시 일반 소켓 연결 시도
+                try:
+                    sock = socket.socket(socket.AF_INET, socket.SOCK_STREAM)
+                    sock.settimeout(15)  # 타임아웃 더 증가 (10초 → 15초)
+                    result = sock.connect_ex((domain, port))
+                    sock.close()
+
+                    if result == 0:
+                        return {
+                            'port_443_open': True,
+                            'port_test_result': 'success',
+                            'port_error_code': result,
+                            'attempts': attempt + 1,
+                            'connection_method': 'socket_direct'
+                        }
+
+                    # 연결 실패시 재시도 (마지막 시도가 아닌 경우)
+                    if attempt < max_retries - 1:
+                        await asyncio.sleep(retry_delay)
+                        continue
+
                     return {
-                        'port_443_open': True,
-                        'port_test_result': 'success',
+                        'port_443_open': False,
+                        'port_test_result': 'connection_refused',
                         'port_error_code': result,
-                        'attempts': attempt + 1
+                        'attempts': attempt + 1,
+                        'ssl_error': str(ssl_error)
                     }
 
-                # 연결 실패시 재시도 (마지막 시도가 아닌 경우)
-                if attempt < max_retries - 1:
-                    await asyncio.sleep(retry_delay)
-                    continue
+                except Exception as socket_error:
+                    # 예외 발생시 재시도 (마지막 시도가 아닌 경우)
+                    if attempt < max_retries - 1:
+                        await asyncio.sleep(retry_delay)
+                        continue
 
-                return {
-                    'port_443_open': False,
-                    'port_test_result': 'connection_refused',
-                    'port_error_code': result,
-                    'attempts': attempt + 1
-                }
-
-            except Exception as e:
-                # 예외 발생시 재시도 (마지막 시도가 아닌 경우)
-                if attempt < max_retries - 1:
-                    await asyncio.sleep(retry_delay)
-                    continue
-
-                return {
-                    'port_443_open': False,
-                    'port_test_result': 'error',
-                    'port_error': str(e),
-                    'attempts': attempt + 1
-                }
+                    return {
+                        'port_443_open': False,
+                        'port_test_result': 'error',
+                        'socket_error': str(socket_error),
+                        'ssl_error': str(ssl_error),
+                        'attempts': attempt + 1
+                    }
 
     async def _check_http_redirect(self, domain: str) -> Dict:
         """HTTP 접속시 HTTPS로 리다이렉트되는지 확인"""
