@@ -298,7 +298,11 @@ class SSLAnalyzer:
         """보안 헤더 분석"""
         try:
             async with aiohttp.ClientSession() as session:
-                async with session.get(url, ssl=False, timeout=aiohttp.ClientTimeout(total=10)) as response:
+                # SSL 인증서 검증을 건너뛰고 헤더만 가져오기 (HTTPS 유지)
+                ssl_context = ssl.create_default_context()
+                ssl_context.check_hostname = False
+                ssl_context.verify_mode = ssl.CERT_NONE
+                async with session.get(url, ssl=ssl_context, timeout=aiohttp.ClientTimeout(total=10)) as response:
                     headers = dict(response.headers)
             
             present_headers = []
