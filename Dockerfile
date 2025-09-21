@@ -1,7 +1,7 @@
 # Simple dual server setup for Next.js + FastAPI on Hugging Face Spaces
 
 # Use full Node.js image (includes npm, unlike slim version)
-FROM node:18
+FROM node:22
 
 # Set working directory
 WORKDIR /app
@@ -26,17 +26,26 @@ COPY . .
 RUN cd securecheck-pro/backend && pip3 install --no-cache-dir --break-system-packages -r requirements.txt
 
 # Install Node.js dependencies and build frontend
-# Pass environment variables during build time
-ARG NEXT_PUBLIC_SUPABASE_URL
-ARG NEXT_PUBLIC_SUPABASE_ANON_KEY
-ENV NEXT_PUBLIC_SUPABASE_URL=${NEXT_PUBLIC_SUPABASE_URL}
-ENV NEXT_PUBLIC_SUPABASE_ANON_KEY=${NEXT_PUBLIC_SUPABASE_ANON_KEY}
+# Use dummy values for build (real values are set at runtime)
+ENV NEXT_PUBLIC_SUPABASE_URL=https://placeholder.supabase.co
+ENV NEXT_PUBLIC_SUPABASE_ANON_KEY=placeholder_key
 RUN cd securecheck-pro/frontend && npm install && npm run build
 
 # Create simple entrypoint script
 RUN echo '#!/bin/bash\n\
 set -e\n\
 echo "Starting 원클릭SSL services..."\n\
+\n\
+# Override environment variables if provided at runtime\n\
+if [ ! -z "$NEXT_PUBLIC_SUPABASE_URL" ] && [ "$NEXT_PUBLIC_SUPABASE_URL" != "https://placeholder.supabase.co" ]; then\n\
+    echo "Using runtime Supabase URL: $NEXT_PUBLIC_SUPABASE_URL"\n\
+    export NEXT_PUBLIC_SUPABASE_URL="$NEXT_PUBLIC_SUPABASE_URL"\n\
+fi\n\
+\n\
+if [ ! -z "$NEXT_PUBLIC_SUPABASE_ANON_KEY" ] && [ "$NEXT_PUBLIC_SUPABASE_ANON_KEY" != "placeholder_key" ]; then\n\
+    echo "Using runtime Supabase key (exists: true)"\n\
+    export NEXT_PUBLIC_SUPABASE_ANON_KEY="$NEXT_PUBLIC_SUPABASE_ANON_KEY"\n\
+fi\n\
 \n\
 # Start FastAPI backend in background\n\
 echo "Starting FastAPI backend on port 8000..."\n\
