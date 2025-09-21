@@ -26,6 +26,11 @@ COPY . .
 RUN cd securecheck-pro/backend && pip3 install --no-cache-dir --break-system-packages -r requirements.txt
 
 # Install Node.js dependencies and build frontend
+# Pass environment variables during build time
+ARG NEXT_PUBLIC_SUPABASE_URL
+ARG NEXT_PUBLIC_SUPABASE_ANON_KEY
+ENV NEXT_PUBLIC_SUPABASE_URL=${NEXT_PUBLIC_SUPABASE_URL}
+ENV NEXT_PUBLIC_SUPABASE_ANON_KEY=${NEXT_PUBLIC_SUPABASE_ANON_KEY}
 RUN cd securecheck-pro/frontend && npm install && npm run build
 
 # Create simple entrypoint script
