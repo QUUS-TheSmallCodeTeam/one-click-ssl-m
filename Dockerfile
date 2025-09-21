@@ -67,6 +67,11 @@ if [ ! -z "$NEXT_PUBLIC_SITE_URL" ]; then\n\
     export NEXT_PUBLIC_SITE_URL="$NEXT_PUBLIC_SITE_URL"\n\
 fi\n\
 \n\
+if [ ! -z "$SITE_URL" ]; then\n\
+    echo "Using runtime SITE_URL: $SITE_URL"\n\
+    export SITE_URL="$SITE_URL"\n\
+fi\n\
+\n\
 # Start FastAPI backend in background\n\
 echo "Starting FastAPI backend on port 8000..."\n\
 cd /app/securecheck-pro/backend\n\
