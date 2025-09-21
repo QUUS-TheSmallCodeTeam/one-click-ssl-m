@@ -26,10 +26,21 @@ COPY . .
 RUN cd securecheck-pro/backend && pip3 install --no-cache-dir --break-system-packages -r requirements.txt
 
 # Install Node.js dependencies and build frontend
-# Use dummy values for build (real values are set at runtime)
-ENV NEXT_PUBLIC_SUPABASE_URL=https://placeholder.supabase.co
-ENV NEXT_PUBLIC_SUPABASE_ANON_KEY=placeholder_key
-RUN cd securecheck-pro/frontend && npm install && npm run build
+# Use secrets mounting for build-time environment variables
+RUN --mount=type=secret,id=NEXT_PUBLIC_SUPABASE_URL,mode=0444,required=false \
+    --mount=type=secret,id=NEXT_PUBLIC_SUPABASE_ANON_KEY,mode=0444,required=false \
+    cd securecheck-pro/frontend && npm install && \
+    if [ -f /run/secrets/NEXT_PUBLIC_SUPABASE_URL ]; then \
+        export NEXT_PUBLIC_SUPABASE_URL=$(cat /run/secrets/NEXT_PUBLIC_SUPABASE_URL); \
+    else \
+        export NEXT_PUBLIC_SUPABASE_URL=https://lbuvfygrcosdzhgppqba.supabase.co; \
+    fi && \
+    if [ -f /run/secrets/NEXT_PUBLIC_SUPABASE_ANON_KEY ]; then \
+        export NEXT_PUBLIC_SUPABASE_ANON_KEY=$(cat /run/secrets/NEXT_PUBLIC_SUPABASE_ANON_KEY); \
+    else \
+        export NEXT_PUBLIC_SUPABASE_ANON_KEY=eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6ImxidXZmeWdyY29zZHpoZ3BwcWJhIiwicm9sZSI6ImFub24iLCJpYXQiOjE3NTgyNjgyOTIsImV4cCI6MjA3Mzg0NDI5Mn0.f3lGUXsrXFoUd1HjmkbvpbRroqbIAxxi8ZVSRKLVg58; \
+    fi && \
+    npm run build
 
 # Create simple entrypoint script
 RUN echo '#!/bin/bash\n\
