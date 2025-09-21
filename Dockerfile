@@ -29,6 +29,7 @@ RUN cd securecheck-pro/backend && pip3 install --no-cache-dir --break-system-pac
 # Use secrets mounting for build-time environment variables
 RUN --mount=type=secret,id=NEXT_PUBLIC_SUPABASE_URL,mode=0444,required=false \
     --mount=type=secret,id=NEXT_PUBLIC_SUPABASE_ANON_KEY,mode=0444,required=false \
+    --mount=type=secret,id=NEXT_PUBLIC_SITE_URL,mode=0444,required=false \
     cd securecheck-pro/frontend && npm install && \
     if [ -f /run/secrets/NEXT_PUBLIC_SUPABASE_URL ]; then \
         export NEXT_PUBLIC_SUPABASE_URL=$(cat /run/secrets/NEXT_PUBLIC_SUPABASE_URL); \
@@ -39,6 +40,9 @@ RUN --mount=type=secret,id=NEXT_PUBLIC_SUPABASE_URL,mode=0444,required=false \
         export NEXT_PUBLIC_SUPABASE_ANON_KEY=$(cat /run/secrets/NEXT_PUBLIC_SUPABASE_ANON_KEY); \
     else \
         export NEXT_PUBLIC_SUPABASE_ANON_KEY=placeholder_key; \
+    fi && \
+    if [ -f /run/secrets/NEXT_PUBLIC_SITE_URL ]; then \
+        export NEXT_PUBLIC_SITE_URL=$(cat /run/secrets/NEXT_PUBLIC_SITE_URL); \
     fi && \
     npm run build
 
@@ -56,6 +60,11 @@ fi\n\
 if [ ! -z "$NEXT_PUBLIC_SUPABASE_ANON_KEY" ] && [ "$NEXT_PUBLIC_SUPABASE_ANON_KEY" != "placeholder_key" ]; then\n\
     echo "Using runtime Supabase key (exists: true)"\n\
     export NEXT_PUBLIC_SUPABASE_ANON_KEY="$NEXT_PUBLIC_SUPABASE_ANON_KEY"\n\
+fi\n\
+\n\
+if [ ! -z "$NEXT_PUBLIC_SITE_URL" ]; then\n\
+    echo "Using runtime Site URL: $NEXT_PUBLIC_SITE_URL"\n\
+    export NEXT_PUBLIC_SITE_URL="$NEXT_PUBLIC_SITE_URL"\n\
 fi\n\
 \n\
 # Start FastAPI backend in background\n\
