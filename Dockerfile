@@ -33,12 +33,12 @@ RUN --mount=type=secret,id=NEXT_PUBLIC_SUPABASE_URL,mode=0444,required=false \
     if [ -f /run/secrets/NEXT_PUBLIC_SUPABASE_URL ]; then \
         export NEXT_PUBLIC_SUPABASE_URL=$(cat /run/secrets/NEXT_PUBLIC_SUPABASE_URL); \
     else \
-        export NEXT_PUBLIC_SUPABASE_URL=https://lbuvfygrcosdzhgppqba.supabase.co; \
+        export NEXT_PUBLIC_SUPABASE_URL=https://placeholder.supabase.co; \
     fi && \
     if [ -f /run/secrets/NEXT_PUBLIC_SUPABASE_ANON_KEY ]; then \
         export NEXT_PUBLIC_SUPABASE_ANON_KEY=$(cat /run/secrets/NEXT_PUBLIC_SUPABASE_ANON_KEY); \
     else \
-        export NEXT_PUBLIC_SUPABASE_ANON_KEY=eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6ImxidXZmeWdyY29zZHpoZ3BwcWJhIiwicm9sZSI6ImFub24iLCJpYXQiOjE3NTgyNjgyOTIsImV4cCI6MjA3Mzg0NDI5Mn0.f3lGUXsrXFoUd1HjmkbvpbRroqbIAxxi8ZVSRKLVg58; \
+        export NEXT_PUBLIC_SUPABASE_ANON_KEY=placeholder_key; \
     fi && \
     npm run build
 

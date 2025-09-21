@@ -9,7 +9,10 @@ export async function middleware(request: NextRequest) {
   const supabaseUrl = process.env.NEXT_PUBLIC_SUPABASE_URL
   const supabaseAnonKey = process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY
 
-  if (!supabaseUrl || !supabaseAnonKey) {
+  // Skip middleware if using placeholder values or missing env vars
+  if (!supabaseUrl || !supabaseAnonKey ||
+      supabaseUrl === 'https://placeholder.supabase.co' ||
+      supabaseAnonKey === 'placeholder_key') {
     return NextResponse.next()
   }
 
