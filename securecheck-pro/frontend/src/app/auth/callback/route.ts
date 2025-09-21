@@ -7,22 +7,30 @@ export async function GET(request: Request) {
   // if "next" is in param, use it as the redirect URL
   const next = searchParams.get('next') ?? '/'
 
+  // Debug logging
+  console.log('=== AUTH CALLBACK DEBUG ===')
+  console.log('request.url:', request.url)
+  console.log('origin:', origin)
+  console.log('next:', next)
+  console.log('NODE_ENV:', process.env.NODE_ENV)
+  console.log('All headers:', Object.fromEntries(request.headers.entries()))
+
   if (code) {
     const supabase = await createClient()
     const { error } = await supabase.auth.exchangeCodeForSession(code)
     if (!error) {
-      const isLocalEnv = process.env.NODE_ENV === 'development'
-
-      if (isLocalEnv) {
-        // Development: use origin as-is
-        return NextResponse.redirect(`${origin}${next}`)
-      } else {
-        // Production: always use origin (which should be the correct public URL)
-        return NextResponse.redirect(`${origin}${next}`)
-      }
+      const redirectUrl = `${origin}${next}`
+      console.log('SUCCESS - Redirecting to:', redirectUrl)
+      return NextResponse.redirect(redirectUrl)
+    } else {
+      console.log('AUTH ERROR:', error)
     }
+  } else {
+    console.log('NO CODE PARAMETER')
   }
 
   // return the user to an error page with instructions
-  return NextResponse.redirect(`${origin}/auth/auth-code-error`)
+  const errorUrl = `${origin}/auth/auth-code-error`
+  console.log('ERROR - Redirecting to:', errorUrl)
+  return NextResponse.redirect(errorUrl)
 }
