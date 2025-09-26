@@ -34,10 +34,25 @@ export default function AuthButton() {
     console.log('=== OAUTH START DEBUG ===')
     console.log('window.location.origin:', window.location.origin)
     console.log('window.location.href:', window.location.href)
+    console.log('window.parent === window:', window.parent === window)
+    console.log('window.top === window:', window.top === window)
+
+    // Check if we're in an iframe
+    const isInIframe = window.parent !== window || window.top !== window
+
+    if (isInIframe) {
+      // If in iframe, open OAuth in parent window
+      const authUrl = `${process.env.NEXT_PUBLIC_SUPABASE_URL}/auth/v1/authorize?provider=google&redirect_to=${encodeURIComponent(window.location.origin + '/auth/callback')}`
+      console.log('Opening OAuth in parent window:', authUrl)
+      window.parent.location.href = authUrl
+      return
+    }
 
     const { error } = await supabase.auth.signInWithOAuth({
       provider: 'google',
-      // Let Supabase auto-detect the callback URL
+      options: {
+        redirectTo: `${window.location.origin}/auth/callback`,
+      }
     })
     if (error) {
       console.error('Error signing in:', error.message)
