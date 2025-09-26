@@ -14,6 +14,7 @@ export async function GET(request: Request) {
   const { searchParams } = correctedUrl
   const code = searchParams.get('code')
   const isFromIframe = searchParams.get('iframe') === 'true'
+  const isPopup = searchParams.get('popup') === 'true'
   // if "next" is in param, use it as the redirect URL
   const next = searchParams.get('next') ?? '/'
 
@@ -54,6 +55,46 @@ export async function GET(request: Request) {
     const { error } = await supabase.auth.exchangeCodeForSession(code)
     if (!error) {
       console.log('SUCCESS - Auth completed')
+
+      if (isPopup) {
+        // If popup mode, send postMessage and show success page
+        const successHtml = `
+          <!DOCTYPE html>
+          <html>
+          <head>
+            <title>로그인 완료</title>
+            <style>
+              body { font-family: Arial, sans-serif; display: flex; justify-content: center; align-items: center; height: 100vh; margin: 0; background: #f5f5f5; }
+              .success { background: white; padding: 40px; border-radius: 8px; box-shadow: 0 4px 6px rgba(0, 0, 0, 0.1); text-align: center; }
+              .success h1 { color: #10b981; margin-bottom: 16px; }
+              .success p { color: #666; margin-bottom: 24px; }
+              .btn { background: #3b82f6; color: white; border: none; padding: 12px 24px; border-radius: 6px; cursor: pointer; }
+            </style>
+          </head>
+          <body>
+            <div class="success">
+              <h1>✅ 로그인 완료!</h1>
+              <p>iframe에 로그인 상태가 반영되었습니다.<br>이 창을 닫아주세요.</p>
+              <button class="btn" onclick="window.close()">창 닫기</button>
+            </div>
+            <script>
+              // Send success message to opener (iframe)
+              if (window.opener) {
+                try {
+                  window.opener.postMessage({ type: 'AUTH_SUCCESS' }, '*');
+                  console.log('Sent AUTH_SUCCESS message to opener');
+                } catch (e) {
+                  console.error('Failed to send postMessage:', e);
+                }
+              }
+            </script>
+          </body>
+          </html>
+        `
+        return new Response(successHtml, {
+          headers: { 'Content-Type': 'text/html' },
+        })
+      }
 
       if (isFromIframe) {
         // If from iframe, show a success page that closes the window
