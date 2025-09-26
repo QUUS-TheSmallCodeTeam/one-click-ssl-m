@@ -28,7 +28,7 @@ export async function GET(request: Request) {
   console.log('cookies:', request.headers.get('cookie'))
 
   if (code) {
-    let supabaseResponse = NextResponse.redirect(`${correctOrigin}${next}`)
+    const supabaseResponse = NextResponse.redirect(`${correctOrigin}${next}`)
 
     const supabase = createServerClient(
       process.env.NEXT_PUBLIC_SUPABASE_URL!,
