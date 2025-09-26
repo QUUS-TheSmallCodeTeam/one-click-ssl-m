@@ -31,11 +31,13 @@ export default function AuthButton() {
   }, [supabase.auth])
 
   const handleSignIn = async () => {
+    console.log('=== OAUTH START DEBUG ===')
+    console.log('window.location.origin:', window.location.origin)
+    console.log('window.location.href:', window.location.href)
+
     const { error } = await supabase.auth.signInWithOAuth({
       provider: 'google',
-      options: {
-        redirectTo: `${window.location.origin}/auth/callback`,
-      },
+      // Let Supabase auto-detect the callback URL
     })
     if (error) {
       console.error('Error signing in:', error.message)
