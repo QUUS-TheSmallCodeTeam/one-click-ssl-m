@@ -1,6 +1,7 @@
 import type { Metadata } from "next";
 import { Noto_Sans_KR, JetBrains_Mono } from "next/font/google";
 import "./globals.css";
+import PopupHandler from "@/components/PopupHandler";
 
 const notoSansKr = Noto_Sans_KR({
   variable: "--font-noto-sans-kr",
@@ -29,6 +30,7 @@ export default function RootLayout({
       <body
         className={`${notoSansKr.variable} ${jetbrainsMono.variable} antialiased`}
       >
+        <PopupHandler />
         {children}
       </body>
     </html>
