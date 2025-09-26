@@ -18,7 +18,26 @@ export default function AuthButton() {
   }
 
   useEffect(() => {
-    getUser()
+    const initAuth = async () => {
+      // Request storage access for iframe context
+      const isInIframe = window.parent !== window || window.top !== window
+      if (isInIframe) {
+        try {
+          // Request storage access to unpartition cookies/storage
+          if ('requestStorageAccess' in document) {
+            console.log('Requesting storage access for iframe')
+            await document.requestStorageAccess()
+            console.log('Storage access granted')
+          }
+        } catch (error) {
+          console.log('Storage access denied or not needed:', error)
+        }
+      }
+
+      getUser()
+    }
+
+    initAuth()
 
     const {
       data: { subscription },
@@ -28,9 +47,28 @@ export default function AuthButton() {
     })
 
     // Listen for OAuth success from popup window
-    const handleMessage = (event: MessageEvent) => {
-      if (event.data?.type === 'OAUTH_SUCCESS') {
+    const handleMessage = async (event: MessageEvent) => {
+      if (event.data?.type === 'AUTH_SUCCESS') {
         console.log('Received OAuth success message from popup')
+
+        // If session data is included, set it directly
+        if (event.data.session) {
+          console.log('Setting session from popup data')
+          try {
+            const { error } = await supabase.auth.setSession({
+              access_token: event.data.session.access_token,
+              refresh_token: event.data.session.refresh_token
+            })
+            if (error) {
+              console.error('Failed to set session in iframe:', error)
+            } else {
+              console.log('Session successfully set in iframe from popup')
+            }
+          } catch (err) {
+            console.error('Error setting session:', err)
+          }
+        }
+
         // Refresh user session
         getUser()
       }
@@ -82,7 +120,7 @@ export default function AuthButton() {
     }
   }, [supabase.auth])
 
-  const handleSignIn = async () => {
+  const handleSignIn = () => {
     console.log('=== OAUTH START DEBUG ===')
     console.log('window.location.origin:', window.location.origin)
     console.log('window.location.href:', window.location.href)
@@ -91,15 +129,20 @@ export default function AuthButton() {
     const isInIframe = window.parent !== window || window.top !== window
 
     if (isInIframe) {
-      // For iframe: try popup first, fallback to current window redirect
-      console.log('In iframe: attempting OAuth')
+      // For iframe: immediate popup in sync with user gesture
+      console.log('In iframe: opening popup immediately')
 
       const authUrl = `${process.env.NEXT_PUBLIC_SUPABASE_URL}/auth/v1/authorize?provider=google&redirect_to=${encodeURIComponent(window.location.origin + '/auth/callback')}`
 
+      // Open popup immediately in sync with click event
       const popup = window.open(authUrl, 'oauth', 'width=500,height=600,scrollbars=yes,resizable=yes')
 
-      if (popup) {
-        console.log('Popup opened, setting up communication')
+      console.log('Popup result:', popup)
+      console.log('Popup === window:', popup === window)
+      console.log('Popup truthy:', !!popup)
+
+      if (popup && popup !== window) {
+        console.log('Real popup opened successfully')
 
         // Listen for auth success message from popup
         const handleMessage = (event: MessageEvent) => {
@@ -121,6 +164,11 @@ export default function AuthButton() {
             window.removeEventListener('message', handleMessage)
           }
         }, 1000)
+      } else {
+        console.log('Popup failed - no real popup created')
+        alert('iframe에서 팝업을 열 수 없습니다. 새 창에서 앱을 사용해주세요.')
+        // Open app in new tab instead
+        window.open(window.location.origin, '_blank')
       }
       return
     }

@@ -22,16 +22,31 @@ export default function PopupHandler() {
       console.log('Detected popup window, checking auth status')
 
       const checkAuthAndNotify = async () => {
+        try {
+          // Request storage access to share cookies with iframe
+          if ('requestStorageAccess' in document) {
+            console.log('Popup requesting storage access')
+            await document.requestStorageAccess()
+            console.log('Popup storage access granted')
+          }
+        } catch (error) {
+          console.log('Popup storage access denied:', error)
+        }
+
         const supabase = createClient()
         const { data: { session } } = await supabase.auth.getSession()
 
         if (session) {
           console.log('User is authenticated in popup, sending success message')
 
-          // Send success message to opener (iframe)
+          // Send auth tokens to opener (iframe) via postMessage
           try {
-            window.opener.postMessage({ type: 'AUTH_SUCCESS' }, '*')
-            console.log('Sent AUTH_SUCCESS message to opener')
+            const sessionData = {
+              type: 'AUTH_SUCCESS',
+              session: session
+            }
+            window.opener.postMessage(sessionData, '*')
+            console.log('Sent AUTH_SUCCESS with session to opener')
           } catch (e) {
             console.error('Failed to send postMessage:', e)
           }
