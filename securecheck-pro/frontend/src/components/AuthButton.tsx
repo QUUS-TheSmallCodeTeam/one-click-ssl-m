@@ -27,7 +27,34 @@ export default function AuthButton() {
       setLoading(false)
     })
 
-    return () => subscription.unsubscribe()
+    // Listen for OAuth success from popup window
+    const handleMessage = (event: MessageEvent) => {
+      if (event.data?.type === 'OAUTH_SUCCESS') {
+        console.log('Received OAuth success message from popup')
+        // Refresh user session
+        getUser()
+      }
+    }
+
+    // Listen for localStorage changes (OAuth success from popup)
+    const handleStorageChange = (e: StorageEvent) => {
+      if (e.key === 'oauth_success' && e.newValue === 'true') {
+        console.log('OAuth success detected via localStorage, refreshing session')
+        // Clear the flag and refresh user
+        localStorage.removeItem('oauth_success')
+        localStorage.removeItem('oauth_timestamp')
+        getUser()
+      }
+    }
+
+    window.addEventListener('message', handleMessage)
+    window.addEventListener('storage', handleStorageChange)
+
+    return () => {
+      subscription.unsubscribe()
+      window.removeEventListener('message', handleMessage)
+      window.removeEventListener('storage', handleStorageChange)
+    }
   }, [supabase.auth])
 
   const handleSignIn = async () => {

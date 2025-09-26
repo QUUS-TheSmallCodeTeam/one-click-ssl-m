@@ -42,20 +42,26 @@ export default function AuthCodeError() {
             // Check if opened from iframe
             const isFromIframe = window.opener && window.opener !== window
             if (isFromIframe) {
-              console.log('Opened from iframe, notifying and closing')
-              // Try to notify parent iframe (may not work due to cross-origin)
+              console.log('Opened from iframe, storing auth state and closing')
+
+              // Store auth success in localStorage for iframe to detect
+              localStorage.setItem('oauth_success', 'true')
+              localStorage.setItem('oauth_timestamp', Date.now().toString())
+
+              // Try to notify parent iframe
               try {
                 if (window.opener) {
-                  window.opener.location.reload()
+                  window.opener.postMessage({ type: 'OAUTH_SUCCESS' }, '*')
                 }
               } catch (e) {
-                console.log('Could not reload opener:', e)
+                console.log('Could not send postMessage to opener:', e)
               }
 
-              // Close this window immediately for iframe context
+              // Show message and close
               setTimeout(() => {
+                console.log('Closing OAuth popup window')
                 window.close()
-              }, 1000)
+              }, 1500)
             } else {
               // If not from iframe, auto-redirect to home after 2 seconds
               setTimeout(() => {
