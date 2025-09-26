@@ -41,10 +41,32 @@ export default function AuthButton() {
     const isInIframe = window.parent !== window || window.top !== window
 
     if (isInIframe) {
-      // If in iframe, open in new tab
-      const newWindow = window.open(window.location.origin, '_blank')
+      // If in iframe, open OAuth in new tab and set up listener for success
+      const authUrl = `${process.env.NEXT_PUBLIC_SUPABASE_URL}/auth/v1/authorize?provider=google&redirect_to=${encodeURIComponent(window.location.origin + '/auth/callback?iframe=true')}`
+      console.log('Opening OAuth URL in new window:', authUrl)
+
+      const newWindow = window.open(authUrl, '_blank')
       if (newWindow) {
         newWindow.focus()
+
+        // Listen for storage events to detect login success
+        const handleStorageChange = (e: StorageEvent) => {
+          if (e.key === 'supabase.auth.token' && e.newValue) {
+            console.log('Auth token detected in storage, refreshing iframe')
+            window.removeEventListener('storage', handleStorageChange)
+            // Force refresh the current iframe content
+            setTimeout(() => {
+              window.location.reload()
+            }, 1000)
+          }
+        }
+
+        window.addEventListener('storage', handleStorageChange)
+
+        // Clean up listener after 5 minutes
+        setTimeout(() => {
+          window.removeEventListener('storage', handleStorageChange)
+        }, 300000)
       }
       return
     }

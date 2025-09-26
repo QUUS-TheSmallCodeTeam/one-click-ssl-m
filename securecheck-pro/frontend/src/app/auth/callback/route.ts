@@ -13,6 +13,7 @@ export async function GET(request: Request) {
 
   const { searchParams } = correctedUrl
   const code = searchParams.get('code')
+  const isFromIframe = searchParams.get('iframe') === 'true'
   // if "next" is in param, use it as the redirect URL
   const next = searchParams.get('next') ?? '/'
 
@@ -52,6 +53,43 @@ export async function GET(request: Request) {
 
     const { error } = await supabase.auth.exchangeCodeForSession(code)
     if (!error) {
+      console.log('SUCCESS - Auth completed')
+
+      if (isFromIframe) {
+        // If from iframe, show a success page that closes the window
+        const successHtml = `
+          <!DOCTYPE html>
+          <html>
+          <head>
+            <title>로그인 완료</title>
+            <style>
+              body { font-family: Arial, sans-serif; display: flex; justify-content: center; align-items: center; height: 100vh; margin: 0; background: #f5f5f5; }
+              .success { background: white; padding: 40px; border-radius: 8px; box-shadow: 0 4px 6px rgba(0, 0, 0, 0.1); text-align: center; }
+              .success h1 { color: #10b981; margin-bottom: 16px; }
+              .success p { color: #666; margin-bottom: 24px; }
+              .btn { background: #3b82f6; color: white; border: none; padding: 12px 24px; border-radius: 6px; cursor: pointer; }
+            </style>
+          </head>
+          <body>
+            <div class="success">
+              <h1>✅ 로그인 완료!</h1>
+              <p>성공적으로 로그인되었습니다.<br>원본 탭으로 돌아가서 새로고침해주세요.</p>
+              <button class="btn" onclick="window.close()">이 창 닫기</button>
+            </div>
+            <script>
+              // Try to close the window automatically
+              setTimeout(() => {
+                window.close();
+              }, 3000);
+            </script>
+          </body>
+          </html>
+        `
+        return new Response(successHtml, {
+          headers: { 'Content-Type': 'text/html' },
+        })
+      }
+
       console.log('SUCCESS - Redirecting to:', `${correctOrigin}${next}`)
       return supabaseResponse
     } else {
