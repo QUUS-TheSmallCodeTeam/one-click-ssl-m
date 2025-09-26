@@ -120,7 +120,7 @@ export default function AuthButton() {
     }
   }, [supabase.auth])
 
-  const handleSignIn = () => {
+  const handleSignIn = async () => {
     console.log('=== OAUTH START DEBUG ===')
     console.log('window.location.origin:', window.location.origin)
     console.log('window.location.href:', window.location.href)
