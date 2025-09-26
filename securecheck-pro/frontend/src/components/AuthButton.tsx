@@ -11,13 +11,13 @@ export default function AuthButton() {
   const router = useRouter()
   const supabase = createClient()
 
-  useEffect(() => {
-    const getUser = async () => {
-      const { data: { session } } = await supabase.auth.getSession()
-      setUser(session?.user ?? null)
-      setLoading(false)
-    }
+  const getUser = async () => {
+    const { data: { session } } = await supabase.auth.getSession()
+    setUser(session?.user ?? null)
+    setLoading(false)
+  }
 
+  useEffect(() => {
     getUser()
 
     const {
