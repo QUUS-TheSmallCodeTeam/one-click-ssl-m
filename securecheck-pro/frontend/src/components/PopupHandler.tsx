@@ -9,8 +9,9 @@ export default function PopupHandler() {
     const hasOpener = window.opener && window.opener !== window
     const hasReferrer = document.referrer && document.referrer.includes('huggingface.co')
     const isNewWindow = window.history.length === 1
+    const hasAuthFragment = window.location.hash.includes('access_token')
 
-    const isPopup = hasOpener || (hasReferrer && isNewWindow)
+    const isPopup = hasOpener || (hasReferrer && isNewWindow && hasAuthFragment)
 
     console.log('=== POPUP DETECTION ===')
     console.log('hasOpener:', hasOpener)

@@ -132,7 +132,7 @@ export default function AuthButton() {
       // For iframe: immediate popup in sync with user gesture
       console.log('In iframe: opening popup immediately')
 
-      const authUrl = `${process.env.NEXT_PUBLIC_SUPABASE_URL}/auth/v1/authorize?provider=google&redirect_to=${encodeURIComponent(window.location.origin + '/auth/callback')}`
+      const authUrl = `${process.env.NEXT_PUBLIC_SUPABASE_URL}/auth/v1/authorize?provider=google&redirect_to=${encodeURIComponent(window.location.origin + '/auth/callback?popup=true')}`
 
       // Open popup immediately in sync with click event
       const popup = window.open(authUrl, 'oauth', 'width=500,height=600,scrollbars=yes,resizable=yes')
