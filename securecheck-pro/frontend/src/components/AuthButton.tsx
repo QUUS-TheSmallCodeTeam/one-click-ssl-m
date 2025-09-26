@@ -41,10 +41,21 @@ export default function AuthButton() {
     const isInIframe = window.parent !== window || window.top !== window
 
     if (isInIframe) {
-      // If in iframe, open OAuth in parent window
+      // If in iframe, open OAuth in a new window/tab
       const authUrl = `${process.env.NEXT_PUBLIC_SUPABASE_URL}/auth/v1/authorize?provider=google&redirect_to=${encodeURIComponent(window.location.origin + '/auth/callback')}`
-      console.log('Opening OAuth in parent window:', authUrl)
-      window.parent.location.href = authUrl
+      console.log('Opening OAuth in new window:', authUrl)
+
+      // Try to use parent's window.open if possible, otherwise use current window
+      try {
+        if (window.parent && window.parent.open) {
+          window.parent.open(authUrl, '_blank')
+        } else {
+          window.open(authUrl, '_blank')
+        }
+      } catch (error) {
+        console.warn('Failed to open OAuth in new window, falling back to current window:', error)
+        window.location.href = authUrl
+      }
       return
     }
 
