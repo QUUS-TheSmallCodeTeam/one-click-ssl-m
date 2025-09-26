@@ -91,34 +91,43 @@ export default function AuthButton() {
     const isInIframe = window.parent !== window || window.top !== window
 
     if (isInIframe) {
-      // For external iframe embedding: use popup OAuth with postMessage
-      console.log('In iframe: using popup OAuth with postMessage')
+      // For iframe: try popup first, fallback to current window redirect
+      console.log('In iframe: attempting OAuth')
 
-      const authUrl = `${process.env.NEXT_PUBLIC_SUPABASE_URL}/auth/v1/authorize?provider=google&redirect_to=${encodeURIComponent(window.location.origin + '/auth/callback?popup=true')}`
+      const authUrl = `${process.env.NEXT_PUBLIC_SUPABASE_URL}/auth/v1/authorize?provider=google&redirect_to=${encodeURIComponent(window.location.origin + '/auth/callback')}`
 
-      const popup = window.open(authUrl, 'oauth', 'width=500,height=600,scrollbars=yes,resizable=yes')
+      try {
+        const popup = window.open(authUrl, 'oauth', 'width=500,height=600,scrollbars=yes,resizable=yes')
 
-      if (popup) {
-        // Listen for auth success message from popup
-        const handleMessage = (event: MessageEvent) => {
-          if (event.origin === window.location.origin && event.data?.type === 'AUTH_SUCCESS') {
-            console.log('Received auth success from popup')
-            popup.close()
-            window.removeEventListener('message', handleMessage)
-            // Refresh user session
-            getUser()
+        if (popup) {
+          console.log('Popup opened successfully')
+          // Listen for auth success message from popup
+          const handleMessage = (event: MessageEvent) => {
+            if (event.origin === window.location.origin && event.data?.type === 'AUTH_SUCCESS') {
+              console.log('Received auth success from popup')
+              popup.close()
+              window.removeEventListener('message', handleMessage)
+              // Refresh user session
+              getUser()
+            }
           }
+
+          window.addEventListener('message', handleMessage)
+
+          // Check if popup is closed manually
+          const checkClosed = setInterval(() => {
+            if (popup.closed) {
+              clearInterval(checkClosed)
+              window.removeEventListener('message', handleMessage)
+            }
+          }, 1000)
+        } else {
+          console.log('Popup blocked, using current window redirect')
+          window.location.href = authUrl
         }
-
-        window.addEventListener('message', handleMessage)
-
-        // Check if popup is closed manually
-        const checkClosed = setInterval(() => {
-          if (popup.closed) {
-            clearInterval(checkClosed)
-            window.removeEventListener('message', handleMessage)
-          }
-        }, 1000)
+      } catch (error) {
+        console.log('Popup failed, using current window redirect:', error)
+        window.location.href = authUrl
       }
       return
     }

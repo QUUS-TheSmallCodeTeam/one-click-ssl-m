@@ -5,8 +5,18 @@ import { createClient } from '@/lib/supabase/client'
 
 export default function PopupHandler() {
   useEffect(() => {
-    // Check if this window was opened as a popup
-    const isPopup = window.opener && window.opener !== window
+    // Check if this window was opened as a popup (multiple detection methods)
+    const hasOpener = window.opener && window.opener !== window
+    const hasReferrer = document.referrer && document.referrer.includes('huggingface.co')
+    const isNewWindow = window.history.length === 1
+
+    const isPopup = hasOpener || (hasReferrer && isNewWindow)
+
+    console.log('=== POPUP DETECTION ===')
+    console.log('hasOpener:', hasOpener)
+    console.log('hasReferrer:', hasReferrer)
+    console.log('isNewWindow:', isNewWindow)
+    console.log('isPopup:', isPopup)
 
     if (isPopup) {
       console.log('Detected popup window, checking auth status')
