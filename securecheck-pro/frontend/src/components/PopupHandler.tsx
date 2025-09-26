@@ -11,7 +11,8 @@ export default function PopupHandler() {
     const isNewWindow = window.history.length === 1
     const hasAuthFragment = window.location.hash.includes('access_token')
 
-    const isPopup = hasOpener || (hasReferrer && isNewWindow && hasAuthFragment)
+    // More reliable popup detection for iframe contexts
+    const isPopup = hasAuthFragment && (hasOpener || hasReferrer)
 
     console.log('=== POPUP DETECTION ===')
     console.log('hasOpener:', hasOpener)

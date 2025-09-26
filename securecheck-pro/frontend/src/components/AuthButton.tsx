@@ -134,42 +134,36 @@ export default function AuthButton() {
 
       const authUrl = `${process.env.NEXT_PUBLIC_SUPABASE_URL}/auth/v1/authorize?provider=google&redirect_to=${encodeURIComponent(window.location.origin + '/auth/callback?popup=true')}`
 
-      // Open popup immediately in sync with click event
-      const popup = window.open(authUrl, 'oauth', 'width=500,height=600,scrollbars=yes,resizable=yes')
+      // Use unique window name to avoid iframe window.open issues
+      const uniqueName = 'oauth_popup_' + Date.now()
+      const popup = window.open(authUrl, uniqueName, 'width=500,height=600,scrollbars=yes,resizable=yes')
 
       console.log('Popup result:', popup)
       console.log('Popup === window:', popup === window)
       console.log('Popup truthy:', !!popup)
 
-      if (popup && popup !== window) {
-        console.log('Real popup opened successfully')
+      // Always assume popup worked and set up listener (iframe window.open quirks)
+      console.log('Setting up popup communication (assuming popup opened)')
 
-        // Listen for auth success message from popup
-        const handleMessage = (event: MessageEvent) => {
-          if (event.origin === window.location.origin && event.data?.type === 'AUTH_SUCCESS') {
-            console.log('Received auth success from popup')
+      // Listen for auth success message from popup
+      const handleMessage = (event: MessageEvent) => {
+        if (event.origin === window.location.origin && event.data?.type === 'AUTH_SUCCESS') {
+          console.log('Received auth success from popup')
+          if (popup && popup !== window) {
             popup.close()
-            window.removeEventListener('message', handleMessage)
-            // Refresh user session
-            getUser()
           }
+          window.removeEventListener('message', handleMessage)
+          // Refresh user session
+          getUser()
         }
-
-        window.addEventListener('message', handleMessage)
-
-        // Check if popup is closed manually
-        const checkClosed = setInterval(() => {
-          if (popup.closed) {
-            clearInterval(checkClosed)
-            window.removeEventListener('message', handleMessage)
-          }
-        }, 1000)
-      } else {
-        console.log('Popup failed - no real popup created')
-        alert('iframe에서 팝업을 열 수 없습니다. 새 창에서 앱을 사용해주세요.')
-        // Open app in new tab instead
-        window.open(window.location.origin, '_blank')
       }
+
+      window.addEventListener('message', handleMessage)
+
+      // Clean up listener after 5 minutes
+      setTimeout(() => {
+        window.removeEventListener('message', handleMessage)
+      }, 300000)
       return
     }
 
