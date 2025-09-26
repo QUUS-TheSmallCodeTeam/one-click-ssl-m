@@ -1,4 +1,4 @@
-import { createClient } from '@/lib/supabase/server'
+import { createServerClient } from '@supabase/ssr'
 import { NextResponse } from 'next/server'
 
 export async function GET(request: Request) {
@@ -25,21 +25,35 @@ export async function GET(request: Request) {
   console.log('correctOrigin:', correctOrigin)
   console.log('next:', next)
   console.log('NODE_ENV:', process.env.NODE_ENV)
+  console.log('cookies:', request.headers.get('cookie'))
 
   if (code) {
-    // Create a new request with corrected URL for Supabase
-    const correctedRequest = new Request(correctedUrl, {
-      method: request.method,
-      headers: request.headers,
-      body: request.body,
-    })
+    let supabaseResponse = NextResponse.redirect(`${correctOrigin}${next}`)
 
-    const supabase = await createClient()
+    const supabase = createServerClient(
+      process.env.NEXT_PUBLIC_SUPABASE_URL!,
+      process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY!,
+      {
+        cookies: {
+          getAll() {
+            return request.headers.get('cookie')
+              ?.split(';')
+              ?.map(c => c.trim().split('='))
+              ?.map(([name, value]) => ({ name, value: decodeURIComponent(value || '') })) ?? []
+          },
+          setAll(cookiesToSet) {
+            cookiesToSet.forEach(({ name, value, options }) => {
+              supabaseResponse.cookies.set(name, value, options)
+            })
+          },
+        },
+      }
+    )
+
     const { error } = await supabase.auth.exchangeCodeForSession(code)
     if (!error) {
-      const redirectUrl = `${correctOrigin}${next}`
-      console.log('SUCCESS - Redirecting to:', redirectUrl)
-      return NextResponse.redirect(redirectUrl)
+      console.log('SUCCESS - Redirecting to:', `${correctOrigin}${next}`)
+      return supabaseResponse
     } else {
       console.log('AUTH ERROR:', error)
     }
