@@ -52,9 +52,14 @@ export default function AuthCodeError() {
                 console.log('Could not reload opener:', e)
               }
 
-              // Close this window after delay
+              // Close this window immediately for iframe context
               setTimeout(() => {
                 window.close()
+              }, 1000)
+            } else {
+              // If not from iframe, auto-redirect to home after 2 seconds
+              setTimeout(() => {
+                window.location.href = '/'
               }, 2000)
             }
           }
@@ -88,6 +93,8 @@ export default function AuthCodeError() {
   }
 
   if (isSuccess) {
+    const isFromIframe = typeof window !== 'undefined' && window.opener && window.opener !== window
+
     return (
       <div className="min-h-screen bg-gradient-to-br from-green-50 to-emerald-100 flex items-center justify-center">
         <div className="max-w-md w-full bg-white rounded-lg shadow-lg p-8 text-center">
@@ -95,16 +102,15 @@ export default function AuthCodeError() {
           <h1 className="text-2xl font-bold text-gray-900 mb-4">로그인 완료!</h1>
           <p className="text-gray-600 mb-6">
             성공적으로 로그인되었습니다.
-            {window.opener ? ' 이 창은 곧 닫힙니다.' : ' 홈으로 이동해주세요.'}
+            {isFromIframe
+              ? ' 이 창은 1초 후 자동으로 닫힙니다.'
+              : ' 2초 후 자동으로 홈으로 이동합니다.'}
           </p>
-          {!window.opener && (
-            <Link
-              href="/"
-              className="inline-block bg-green-600 text-white px-6 py-3 rounded-lg hover:bg-green-700 transition-colors"
-            >
-              홈으로 이동
-            </Link>
-          )}
+          <div className="text-sm text-gray-500">
+            {isFromIframe
+              ? '원본 탭에서 새로고침을 확인해주세요.'
+              : '잠시만 기다려주세요...'}
+          </div>
         </div>
       </div>
     )
