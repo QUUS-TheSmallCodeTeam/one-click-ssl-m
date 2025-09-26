@@ -41,8 +41,12 @@ export default function AuthButton() {
     const isInIframe = window.parent !== window || window.top !== window
 
     if (isInIframe) {
-      // If in iframe, proceed with normal OAuth flow but in current window
-      console.log('In iframe: proceeding with OAuth in iframe')
+      // If in iframe, open in new tab
+      const newWindow = window.open(window.location.origin, '_blank')
+      if (newWindow) {
+        newWindow.focus()
+      }
+      return
     }
 
     const { error } = await supabase.auth.signInWithOAuth({
@@ -100,6 +104,9 @@ export default function AuthButton() {
     )
   }
 
+  // Check if we're in an iframe for button text
+  const isInIframe = typeof window !== 'undefined' && (window.parent !== window || window.top !== window)
+
   return (
     <button
       onClick={handleSignIn}
@@ -123,7 +130,9 @@ export default function AuthButton() {
           d="M12 5.38c1.62 0 3.06.56 4.21 1.64l3.15-3.15C17.45 2.09 14.97 1 12 1 7.7 1 3.99 3.47 2.18 7.07l3.66 2.84c.87-2.6 3.3-4.53 6.16-4.53z"
         />
       </svg>
-      <span className="text-sm font-medium">Google로 로그인</span>
+      <span className="text-sm font-medium">
+        {isInIframe ? '새 창에서 Google 로그인' : 'Google로 로그인'}
+      </span>
     </button>
   )
 }
