@@ -57,16 +57,41 @@ export default function AuthCodeError() {
                 console.log('Could not send postMessage to opener:', e)
               }
 
-              // Show message and close
+              // Try to focus back to opener and close this window
               setTimeout(() => {
-                console.log('Closing OAuth popup window')
+                console.log('Trying to focus opener and close popup')
+                try {
+                  if (window.opener && !window.opener.closed) {
+                    window.opener.focus()
+                  }
+                } catch (e) {
+                  console.log('Could not focus opener:', e)
+                }
+
+                // Close this window
                 window.close()
+
+                // If window.close() fails, show manual close instruction
+                setTimeout(() => {
+                  if (!window.closed) {
+                    alert('로그인이 완료되었습니다. 이 창을 닫고 원본 탭으로 돌아가세요.')
+                  }
+                }, 500)
               }, 1500)
             } else {
-              // If not from iframe, auto-redirect to home after 2 seconds
-              setTimeout(() => {
-                window.location.href = '/'
-              }, 2000)
+              // If not from iframe but opened as popup, redirect to iframe URL
+              const urlParams = new URLSearchParams(window.location.search)
+              if (window.opener && urlParams.get('popup') === 'true') {
+                console.log('Redirecting popup to iframe URL')
+                setTimeout(() => {
+                  window.location.href = 'https://huggingface.co/spaces/m8chaa/one_click_ssl_m'
+                }, 2000)
+              } else {
+                // Normal direct access, redirect to home
+                setTimeout(() => {
+                  window.location.href = '/'
+                }, 2000)
+              }
             }
           }
         } else {
@@ -109,14 +134,41 @@ export default function AuthCodeError() {
           <p className="text-gray-600 mb-6">
             성공적으로 로그인되었습니다.
             {isFromIframe
-              ? ' 이 창은 1초 후 자동으로 닫힙니다.'
+              ? ' 이 창을 닫고 원본 탭으로 돌아가세요.'
               : ' 2초 후 자동으로 홈으로 이동합니다.'}
           </p>
-          <div className="text-sm text-gray-500">
+          <div className="text-sm text-gray-500 mb-4">
             {isFromIframe
-              ? '원본 탭에서 새로고침을 확인해주세요.'
+              ? '원본 탭에서 페이지를 새로고침하면 로그인된 상태를 확인할 수 있습니다.'
               : '잠시만 기다려주세요...'}
           </div>
+          {isFromIframe && (
+            <div className="flex gap-3 justify-center">
+              <button
+                onClick={() => {
+                  try {
+                    if (window.opener && !window.opener.closed) {
+                      window.opener.focus()
+                    }
+                  } catch (e) {
+                    console.log('Could not focus opener:', e)
+                  }
+                  window.close()
+                }}
+                className="bg-blue-600 text-white px-4 py-2 rounded-lg hover:bg-blue-700 transition-colors"
+              >
+                창 닫고 돌아가기
+              </button>
+              <button
+                onClick={() => {
+                  window.location.href = 'https://huggingface.co/spaces/m8chaa/one_click_ssl_m'
+                }}
+                className="bg-gray-600 text-white px-4 py-2 rounded-lg hover:bg-gray-700 transition-colors"
+              >
+                원본 탭으로 이동
+              </button>
+            </div>
+          )}
         </div>
       </div>
     )
