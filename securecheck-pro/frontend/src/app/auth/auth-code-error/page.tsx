@@ -44,9 +44,11 @@ export default function AuthCodeError() {
             if (isFromIframe) {
               console.log('Opened from iframe, storing auth state and closing')
 
-              // Store auth success in localStorage for iframe to detect
+              // Store auth tokens in localStorage for iframe to detect
               localStorage.setItem('oauth_success', 'true')
               localStorage.setItem('oauth_timestamp', Date.now().toString())
+              localStorage.setItem('supabase_access_token', accessToken)
+              localStorage.setItem('supabase_refresh_token', refreshToken || '')
 
               // Try to notify parent iframe
               try {

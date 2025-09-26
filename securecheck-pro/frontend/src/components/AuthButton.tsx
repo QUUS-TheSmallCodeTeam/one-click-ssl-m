@@ -37,13 +37,38 @@ export default function AuthButton() {
     }
 
     // Listen for localStorage changes (OAuth success from popup)
-    const handleStorageChange = (e: StorageEvent) => {
+    const handleStorageChange = async (e: StorageEvent) => {
       if (e.key === 'oauth_success' && e.newValue === 'true') {
-        console.log('OAuth success detected via localStorage, refreshing session')
-        // Clear the flag and refresh user
-        localStorage.removeItem('oauth_success')
-        localStorage.removeItem('oauth_timestamp')
-        getUser()
+        console.log('OAuth success detected via localStorage, setting session in iframe')
+
+        const accessToken = localStorage.getItem('supabase_access_token')
+        const refreshToken = localStorage.getItem('supabase_refresh_token')
+
+        if (accessToken) {
+          try {
+            // Set session in iframe using tokens from popup
+            const { error } = await supabase.auth.setSession({
+              access_token: accessToken,
+              refresh_token: refreshToken || ''
+            })
+
+            if (error) {
+              console.error('Failed to set session in iframe:', error)
+            } else {
+              console.log('Session successfully set in iframe')
+              // Clean up stored tokens
+              localStorage.removeItem('oauth_success')
+              localStorage.removeItem('oauth_timestamp')
+              localStorage.removeItem('supabase_access_token')
+              localStorage.removeItem('supabase_refresh_token')
+
+              // Refresh user state
+              getUser()
+            }
+          } catch (err) {
+            console.error('Error setting session in iframe:', err)
+          }
+        }
       }
     }
 
