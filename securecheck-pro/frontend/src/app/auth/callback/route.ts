@@ -57,7 +57,9 @@ export async function GET(request: Request) {
       console.log('SUCCESS - Auth completed')
 
       if (isPopup) {
-        // If popup mode, send postMessage and show success page
+        // If popup mode, get session data and send via multiple channels
+        const { data: { session } } = await supabase.auth.getSession()
+
         const successHtml = `
           <!DOCTYPE html>
           <html>
@@ -69,6 +71,7 @@ export async function GET(request: Request) {
               .success h1 { color: #10b981; margin-bottom: 16px; }
               .success p { color: #666; margin-bottom: 24px; }
               .btn { background: #3b82f6; color: white; border: none; padding: 12px 24px; border-radius: 6px; cursor: pointer; }
+              .log { background: #f8f9fa; border: 1px solid #e9ecef; padding: 16px; margin-top: 20px; border-radius: 4px; font-family: monospace; font-size: 12px; text-align: left; max-height: 200px; overflow-y: auto; }
             </style>
           </head>
           <body>
@@ -76,17 +79,143 @@ export async function GET(request: Request) {
               <h1>✅ 로그인 완료!</h1>
               <p>iframe에 로그인 상태가 반영되었습니다.<br>이 창을 닫아주세요.</p>
               <button class="btn" onclick="window.close()">창 닫기</button>
+              <div class="log" id="log"></div>
             </div>
             <script>
-              // Send success message to opener (iframe)
-              if (window.opener) {
+              const log = document.getElementById('log');
+              const addLog = (message) => {
+                const timestamp = new Date().toISOString().split('T')[1].split('.')[0];
+                log.innerHTML += timestamp + ': ' + message + '\\n';
+                log.scrollTop = log.scrollHeight;
+                console.log(message);
+              };
+
+              addLog('=== POPUP CALLBACK SCRIPT START ===');
+
+              // Get session data from server
+              const sessionData = ${JSON.stringify(session)};
+              addLog('Session data received: ' + (sessionData ? 'YES' : 'NO'));
+
+              // Prepare message data
+              const messageData = {
+                type: 'AUTH_SUCCESS',
+                session: sessionData,
+                timestamp: Date.now(),
+                origin: window.location.origin
+              };
+
+              let communicationSuccess = false;
+
+              // Method 1: BroadcastChannel
+              const sendViaBroadcastChannel = () => {
                 try {
-                  window.opener.postMessage({ type: 'AUTH_SUCCESS' }, '*');
-                  console.log('Sent AUTH_SUCCESS message to opener');
+                  const authChannel = new BroadcastChannel('auth_channel');
+                  authChannel.postMessage(messageData);
+                  addLog('✓ BroadcastChannel message sent');
+                  authChannel.close();
+                  return true;
                 } catch (e) {
-                  console.error('Failed to send postMessage:', e);
+                  addLog('✗ BroadcastChannel failed: ' + e.message);
+                  return false;
                 }
-              }
+              };
+
+              // Method 2: PostMessage to opener
+              const sendViaPostMessage = () => {
+                if (window.opener && !window.opener.closed) {
+                  try {
+                    // Try multiple target origins for iframe contexts
+                    const targetOrigins = ['*', 'https://huggingface.co', window.location.origin];
+
+                    targetOrigins.forEach(origin => {
+                      window.opener.postMessage(messageData, origin);
+                    });
+
+                    addLog('✓ PostMessage sent to opener with multiple origins');
+                    return true;
+                  } catch (e) {
+                    addLog('✗ PostMessage failed: ' + e.message);
+                    return false;
+                  }
+                } else {
+                  addLog('✗ No opener window available');
+                  return false;
+                }
+              };
+
+              // Method 3: localStorage as fallback
+              const sendViaLocalStorage = () => {
+                try {
+                  if (sessionData) {
+                    localStorage.setItem('oauth_success', 'true');
+                    localStorage.setItem('oauth_timestamp', Date.now().toString());
+                    localStorage.setItem('supabase_access_token', sessionData.access_token);
+                    if (sessionData.refresh_token) {
+                      localStorage.setItem('supabase_refresh_token', sessionData.refresh_token);
+                    }
+                    addLog('✓ Session data stored in localStorage');
+                    return true;
+                  } else {
+                    addLog('✗ No session data to store');
+                    return false;
+                  }
+                } catch (e) {
+                  addLog('✗ localStorage failed: ' + e.message);
+                  return false;
+                }
+              };
+
+              // Send via all available methods
+              const sendMessage = () => {
+                addLog('Attempting to send auth success message...');
+
+                const results = [
+                  sendViaBroadcastChannel(),
+                  sendViaPostMessage(),
+                  sendViaLocalStorage()
+                ];
+
+                communicationSuccess = results.some(result => result);
+
+                if (communicationSuccess) {
+                  addLog('✓ At least one communication method succeeded');
+                } else {
+                  addLog('✗ All communication methods failed');
+                }
+
+                return communicationSuccess;
+              };
+
+              // Retry logic
+              let attempts = 0;
+              const maxAttempts = 3;
+              const retryDelay = 1000;
+
+              const tryMessage = () => {
+                attempts++;
+                addLog('Attempt ' + attempts + ' of ' + maxAttempts);
+
+                if (sendMessage()) {
+                  addLog('Communication successful, scheduling window close');
+                  // Auto-close after successful communication
+                  setTimeout(() => {
+                    addLog('Closing popup window');
+                    window.close();
+                  }, 2000);
+                } else if (attempts < maxAttempts) {
+                  addLog('Retrying in ' + retryDelay + 'ms...');
+                  setTimeout(tryMessage, retryDelay);
+                } else {
+                  addLog('Max attempts reached, giving up');
+                  setTimeout(() => {
+                    alert('로그인이 완료되었습니다. 이 창을 닫고 원본 탭으로 돌아가세요.');
+                  }, 1000);
+                }
+              };
+
+              // Start the process
+              addLog('Starting authentication communication process');
+              tryMessage();
             </script>
           </body>
           </html>

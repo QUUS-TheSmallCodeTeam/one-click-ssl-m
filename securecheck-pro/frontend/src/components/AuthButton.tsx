@@ -46,31 +46,61 @@ export default function AuthButton() {
       setLoading(false)
     })
 
-    // Listen for OAuth success from popup window
-    const handleMessage = async (event: MessageEvent) => {
-      if (event.data?.type === 'AUTH_SUCCESS') {
-        console.log('Received OAuth success message from popup')
+    // Create BroadcastChannel for popup communication
+    const authChannel = new BroadcastChannel('auth_channel')
 
-        // If session data is included, set it directly
-        if (event.data.session) {
-          console.log('Setting session from popup data')
-          try {
-            const { error } = await supabase.auth.setSession({
-              access_token: event.data.session.access_token,
-              refresh_token: event.data.session.refresh_token
-            })
-            if (error) {
-              console.error('Failed to set session in iframe:', error)
-            } else {
-              console.log('Session successfully set in iframe from popup')
-            }
-          } catch (err) {
-            console.error('Error setting session:', err)
+    // Unified auth success handler
+    const handleAuthSuccess = async (data: any) => {
+      console.log('Processing auth success with data:', data)
+
+      // If session data is included, set it directly
+      if (data.session) {
+        console.log('Setting session from popup data')
+        try {
+          const { error } = await supabase.auth.setSession({
+            access_token: data.session.access_token,
+            refresh_token: data.session.refresh_token
+          })
+          if (error) {
+            console.error('Failed to set session in iframe:', error)
+          } else {
+            console.log('Session successfully set in iframe from popup')
           }
+        } catch (err) {
+          console.error('Error setting session:', err)
         }
+      }
 
-        // Refresh user session
-        getUser()
+      // Refresh user session
+      getUser()
+    }
+
+    // Listen for OAuth success from popup window via postMessage
+    const handleMessage = async (event: MessageEvent) => {
+      // Verify origin for security (allow both HuggingFace and local origins)
+      const allowedOrigins = [
+        'https://huggingface.co',
+        window.location.origin,
+        // Also allow the actual space domain
+        window.location.origin.replace(/^https?:\/\//, 'https://'),
+      ]
+
+      if (!allowedOrigins.includes(event.origin)) {
+        console.log('Ignoring message from unauthorized origin:', event.origin)
+        return
+      }
+
+      if (event.data?.type === 'AUTH_SUCCESS') {
+        console.log('Received OAuth success message from popup via postMessage')
+        await handleAuthSuccess(event.data)
+      }
+    }
+
+    // Listen for OAuth success via BroadcastChannel
+    const handleBroadcastMessage = async (event: MessageEvent) => {
+      if (event.data?.type === 'AUTH_SUCCESS') {
+        console.log('Received OAuth success message via BroadcastChannel')
+        await handleAuthSuccess(event.data)
       }
     }
 
@@ -112,11 +142,14 @@ export default function AuthButton() {
 
     window.addEventListener('message', handleMessage)
     window.addEventListener('storage', handleStorageChange)
+    authChannel.addEventListener('message', handleBroadcastMessage)
 
     return () => {
       subscription.unsubscribe()
       window.removeEventListener('message', handleMessage)
       window.removeEventListener('storage', handleStorageChange)
+      authChannel.removeEventListener('message', handleBroadcastMessage)
+      authChannel.close()
     }
   }, [supabase.auth])
 
